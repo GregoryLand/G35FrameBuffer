@@ -1,6 +1,6 @@
 // Hack Pittsburgh Frame Buffer Test
 #include <stdint.h>
-//#include <SoftwareSerial.h>
+#include <SoftwareSerial.h>
 #include <G35String.h>
 #include <G35StringGroup.h>
 #include "led_utils.h"
@@ -8,7 +8,7 @@
 // Create the SoftwareSerial object and give it a rx and tx pin
 const int RX_PIN = 2;
 const int TX_PIN = 3;
-//SoftwareSerial LCD(RX_PIN, TX_PIN); 
+SoftwareSerial LCD(RX_PIN, TX_PIN); 
 
 // Constants for string and light count.  
 const int NUMBER_OF_STRINGS = 2;
@@ -22,7 +22,7 @@ struct Message
   uint16_t color;
 };
 
-void setup() 
+void setup()
 {
   // Constants For LCD SCREEN
   const int LCD_BAUD_RATE = 9600;
@@ -37,11 +37,11 @@ void setup()
   Serial.begin(BAUD_RATE);
 
   // Clear and Write to Lcd Screen
-  //LCD.begin(LCD_BAUD_RATE);              // Setup Lcd baud rate
-  //LCD.write(FORM_FEED);                  // Form Feed, clear screen
-  //LCD.write(BACKLIGHT_ON);               // Turn on backlight (Parallax LCD)
-  //LCD.print("Framebuffer Test");        // Pass a message to display
-  //LCD.write(MOVE_TO_LINE_1_POS_0);       // move to line 1 pos 0
+  LCD.begin(LCD_BAUD_RATE);              // Setup Lcd baud rate
+  LCD.write(FORM_FEED);                  // Form Feed, clear screen
+  LCD.write(BACKLIGHT_ON);               // Turn on backlight (Parallax LCD)
+  LCD.print("Framebuffer Test");        // Pass a message to display
+  LCD.write(MOVE_TO_LINE_1_POS_0);       // move to line 1 pos 0
   
   // Start up the G35
   initializeLedBoard();
@@ -50,20 +50,24 @@ void setup()
 
 void loop() 
 {
+  // Currently the program craps out when you interact with the serial port for the first time open/close ext
+  // I am ok with this since it meens i do not have to reset the board by hand
+  // Will fix later
   const size_t MESSAGE_SIZE = 4;
   char message[MESSAGE_SIZE] = {};
+     
+  // Read in the bytes
+  // This is a blocking read.  It waits for the 4 bytes or times out
+  // Handle the time out at some point
+  if( Serial.readBytes(message, MESSAGE_SIZE) == 4 )
+  {
   
-  //while ( Serial.available() )
-  //{ 
-    // Read in the bytes
-    Serial.readBytes(message, MESSAGE_SIZE);
+  // Overlay a struct on the data
+  Message* temp = (Message*)&message;
     
-    // Overlay a struct on the data
-    Message* temp = (Message*)&message;
-    
-    // Set the led
-    setLed(temp->led, temp->brightness, temp->color);
-  //}
+  // Set the led
+  setLed(temp->led, temp->brightness, temp->color);
+  }
 }
 
 /*void serialEvent()
