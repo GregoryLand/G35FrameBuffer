@@ -27,7 +27,7 @@ import threading # Needed for testing of automated screen clear
 
 ###### Constants(sort of dont change while running code) #####
 # Throw down some constants
-C_BAUDRATE = 31000
+C_BAUDRATE = 9600 #115200#38400
 C_NUMBER_OF_LIGHTS = 70
 # Lookup table for mapping x,y cordnets to led numbers on the board
 C_LOOKUP_TABLE = [[63,64,65,66,67,68,69],[62,61,60,59,58,57,56],[49,50,51,52,53,54,55],[48,47,46,45,44,43,42],[35,36,37,38,39,40,41],[34,33,32,31,30,29,28],[21,22,23,24,25,26,27],[20,19,18,17,16,15,14],[7,8,9,10,11,12,13],[6,5,4,3,2,1,0]]                         
@@ -43,7 +43,10 @@ F_DEBUG = False
 # Setup and open the Serial connection
 ser = serial.Serial()
 ser.baudrate = C_BAUDRATE
-ser.port = "//dev/ttyACM1"
+ser.port = "//dev/ttyACM3"
+ser.xonxoff = False
+ser.dsrdtr  = False
+ser.dsrdtr  = False
 ser.open()
 
 def OpenSerial( deviceName ):
@@ -150,7 +153,7 @@ def bufferedWriteXYRGBA( xCord, yCord, red, green, blue, brightness = 255 ):
   # Check to see if the pixel is already set as desired and if so jump out
   if FrameBuffer[xCord][yCord][C_BUFFER_RED] == red:
     if FrameBuffer[xCord][yCord][C_BUFFER_GREEN] == green:
-      if FrameBuffer[xCord][yCord][C_BUFFER_BLUE] == blue:
+      if FrameBuffer[xCord][yCord][C_BUFFER_BLUE]   == blue:
         if FrameBuffer[xCord][yCord][C_BUFFER_BRIGHTNESS] == brightness:
           return
 
@@ -197,15 +200,7 @@ def testWholeBoardAllTheColors():
       for g in range( 0, 15):
         writeAllRGBA(r, g, b, 128)
 	
-def testXYSystem():
-  # Set each pixel to red
-  for x in range(0, C_LIGHT_BOARD_WIDTH ):
-    for y in range(0, C_LIGHT_BOARD_HEIGHT ):
-      writeXYRGBA( x, y, 15, 0, 0, 255 )
-
-  # Clear for next text
-  clearscreen()  
-
+def testEachLightOnceUsingXY():
   # keep track of last write so we can clear it
   lastX = 0
   lastY = 0
@@ -216,6 +211,19 @@ def testXYSystem():
       lastX = x
       lastY = y
       time.sleep(1)
+
+
+def testXYSystem():
+  # Set each pixel to red
+  for x in range(0, C_LIGHT_BOARD_WIDTH ):
+    for y in range(0, C_LIGHT_BOARD_HEIGHT ):
+      writeXYRGBA( x, y, 15, 0, 0, 255 )
+
+  # Clear for next text
+  clearscreen()  
+
+  testEachLightOnceUsingXY()
+
 
 def TestBuffer():
   for x in range(0, C_LIGHT_BOARD_WIDTH):
