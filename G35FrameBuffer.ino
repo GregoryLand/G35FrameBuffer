@@ -7,6 +7,9 @@
 //#include "led_utils.h"
 
 // Debug constants
+// WARNING: Debuging outputs WILL screw with the timing for the interupts
+// You may need to adjust the interupt timer if attempting to debug some
+// parts of the code
 //#define DEBUG_SERIAL_MESSAGE_BUFFER
 //#define DEBUG_COLOR_MESSAGES
 //#define DEBUG_SERIAL_LOOPCOUNT
@@ -80,15 +83,24 @@ uint32_t PackG35Message( uint8_t led, uint8_t brightness, uint16_t color )
 
 void setup()
 {  
+  // Constants For Serial Connection
+  //const int BAUD_RATE = 9600;
+  //const int BAUD_RATE = 19200;
+  //const int BAUD_RATE = 28800; // Best Working so far still testing
+  //const int BAUD_RATE = 31000;   // ?? Working Provides Faster framerates
+  //const int BAUD_RATE = 32700;
+  const int BAUD_RATE = 32750;  // 11.67 frames a second
+  //Not Working////////////////////////////////////////
+  //const int BAUD_RATE = 38400;
+  //const int BAUD_RATE = 57600;
+  //const int BAUD_RATE = 115200;
+
   // Constants For LCD SCREEN
-  const int LCD_BAUD_RATE        = 9600;//95000;//90000;//9600;
+  const int LCD_BAUD_RATE        = 9600;
   const int FORM_FEED            = 12;
   const int BACKLIGHT_ON         = 17;
   const int MOVE_TO_LINE_1_POS_0 = 148;
   
-  // Constants For Serial Connection
-  const int BAUD_RATE            = 28800;//96000;//115200; //9600;//115200; //38400; // Basic tests gives 31000 as a close to max baud rate. more testing needed 
-
   // Clear and Write to Lcd Screenx
   //LCD.begin(LCD_BAUD_RATE);              // Setup Lcd baud rate
   //LCD.write(FORM_FEED);                  // Form Feed, clear screen
@@ -102,15 +114,14 @@ void setup()
   
   // Start Serial Connection 
   Serial.begin(BAUD_RATE);
-
-  Serial.println((uint32_t)(1L << 25), BIN);
+  
   SetupTimerOne();
 }
 
 void loop() 
 {  
   #ifdef DEBUG_BIT_BANG
-  //Serial.print("Line1 Send Progress = "); Serial.print(StringOneSendProgress);
+    Serial.print("Line1 Send Progress = "); Serial.print(StringOneSendProgress);
   #endif  
   #ifdef DEBUG_COLOR_MESSAGES
     Serial.print(" Packed Message: "); Serial.println(StringOneMessage, BIN);
@@ -138,7 +149,9 @@ void loop()
         StringOneNextBit = SEND_A_ONE;
         StringOneState   = READY_TO_TRANSMIT;
         if( StringTwoState == NOT_TRANSMITTING ) startTimer();
-        //Serial.println("Line1");
+        #ifdef DEBUG_COLOR_MESSAGES
+          Serial.println("Line1");
+        #endif
       }
     }
     else
@@ -149,7 +162,9 @@ void loop()
         StringTwoNextBit = SEND_A_ONE;
         StringTwoState   = READY_TO_TRANSMIT;
         if( StringOneState == NOT_TRANSMITTING ) startTimer();
-        //Serial.println("Line2");
+        #ifdef DEBUG_COLOR_MESSAGES
+          Serial.println("Line2");
+        #endif
       }
     }
     // Setup for next run
@@ -240,10 +255,9 @@ ISR( TIMER1_OVF_vect )
 
 void serialEvent()
 {
-  //Serial.println("Serial Event");
   #ifdef DEBUG_SERIAL_LOOPCOUNT
-  // Keep track of number of loops for debug reasons only
-  int loopCounter = 0;
+    // Keep track of number of loops for debug reasons only
+    int loopCounter = 0;
   #endif
   
   // If no activity reset buffer
@@ -259,16 +273,16 @@ void serialEvent()
   while( Serial.available() )
   { 
     #ifdef DEBUG_SERIAL_LOOPCOUNT
-    loopCounter++;
+      loopCounter++;
     #endif
         
     // Using % op is stupidly inefficent on avr here so just reset the counter
     if( FirstOpenByteInBuffer >= MESSAGE_BUFFER_SIZE )
     {
       #ifdef DEBUG_SERIAL_MESSAGE_BUFFER
-      // If we are about to start the buffer over and we haven't processed the first message
-      // in the buffer yet we are in trouble
-      if( FirstMessageToProcess == 0 && LastMessageToProcess != 0 ) Serial.write("ERROR: Message Buffer was overwritten");
+        // If we are about to start the buffer over and we haven't processed the first message
+        // in the buffer yet we are in trouble
+        if( FirstMessageToProcess == 0 && LastMessageToProcess != 0 ) Serial.write("ERROR: Message Buffer was overwritten");
       #endif
       
       FirstOpenByteInBuffer = 0;
@@ -294,7 +308,7 @@ void serialEvent()
       
       // If we have filled the buffer before emptying it we are screwed
       #ifdef DEBUG_SERIAL_MESSAGE_BUFFER
-      if( LastMessageToProcess >= FULL_BUFFER_OF_MESSAGES && FirstMessageToProcess == 0 ) Serial.write("ERROR: Message Buffer is full");
+        if( LastMessageToProcess >= FULL_BUFFER_OF_MESSAGES && FirstMessageToProcess == 0 ) Serial.write("ERROR: Message Buffer is full");
       #endif
       
       // If we hit the end of the buffer start over at the front
@@ -303,7 +317,7 @@ void serialEvent()
   }
   
   #ifdef DEBUG_SERIAL_LOOPCOUNT
-  const int ASSUMED_NUMBER_OF_MAX_LOOPS = 64;
-  if( loopCounter > ASSUMED_NUMBER_OF_MAX_LOOPS ) Serial.write("We are pulling more data out of the ring buffer then I thought possible");
+    const int ASSUMED_NUMBER_OF_MAX_LOOPS = 64;
+    if( loopCounter > ASSUMED_NUMBER_OF_MAX_LOOPS ) Serial.write("We are pulling more data out of the ring buffer then I thought possible");
   #endif
 }
