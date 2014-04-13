@@ -27,7 +27,17 @@ import threading # Needed for testing of automated screen clear
 
 ###### Constants(sort of dont change while running code) #####
 # Throw down some constants
-C_BAUDRATE = 96000  #90000 #57600 #115200
+#C_BAUDRATE = 28800 #57600 #115200 #96000  #90000 #57600 #115200
+#C_BAUDRATE = 9600
+#C_BAUDRATE = 19200
+#C_BAUDRATE = 28800
+#C_BAUDRATE = 31000
+#C_BAUDRATE = 32690
+##NOT WORKING###############
+C_BAUDRATE = 32750
+#C_BAUDRATE = 38400
+#C_BAUDRATE = 57600
+#C_BAUDRATE = 115200
 C_NUMBER_OF_LIGHTS = 70
 # Lookup table for mapping x,y cordnets to led numbers on the board
 C_LOOKUP_TABLE = [[63,64,65,66,67,68,69],[62,61,60,59,58,57,56],[49,50,51,52,53,54,55],[48,47,46,45,44,43,42],[35,36,37,38,39,40,41],[34,33,32,31,30,29,28],[21,22,23,24,25,26,27],[20,19,18,17,16,15,14],[7,8,9,10,11,12,13],[6,5,4,3,2,1,0]]                         
@@ -43,7 +53,7 @@ F_DEBUG = False
 # Setup and open the Serial connection
 ser = serial.Serial()
 ser.baudrate = C_BAUDRATE
-ser.port = "//dev/ttyACM2"
+ser.port = "//dev//ttyACM1"
 ser.xonxoff = False
 ser.dsrdtr  = False
 ser.dsrdtr  = False
@@ -122,21 +132,28 @@ def display():
   global PixelsMarkedDirty
   global WholeBufferDirty
   global PixelsDirty
+  
+  deltaTime = time.perf_counter() - display.lastTime
+  print( "Frames Per Second = " + str( 1.0 / deltaTime) )
+  display.lastTime = time.perf_counter()
 
   if WholeBufferDirty == True:   # If we did something to make all the pixels dirty write them all out and clean up the dirty markers along the way
-    for x in range(0, C_LIGHT_BOARD_WIDTH):
+    for x in range(0, 5):
       for y in range(0, C_LIGHT_BOARD_HEIGHT):
         temp = FrameBuffer[x][y]
         writeXYRGBA( x, y, temp[C_BUFFER_RED], temp[C_BUFFER_GREEN], temp[C_BUFFER_BLUE], temp[C_BUFFER_BRIGHTNESS] )
+        temp = FrameBuffer[x + 5][y]
+        writeXYRGBA( x + 5, y, temp[C_BUFFER_RED], temp[C_BUFFER_GREEN], temp[C_BUFFER_BLUE], temp[C_BUFFER_BRIGHTNESS] )
         PixelsMarkedDirty[x][y] = False
+        PixelsMarkedDirty[x + 5][y] = False
     PixelsDirty = False
     WholeBufferDirty = False
     return
 
   # if we have dirty pixels write them out to the board and clean up the dirty markers
   if PixelsDirty == True:
-    for x in range(0, C_LIGHT_BOARD_WIDTH):
-      for y in range(0, C_LIGHT_BOARD_HEIGHT):
+    for y in range(0, C_LIGHT_BOARD_HEIGHT):
+      for x in range(0, C_LIGHT_BOARD_WIDTH):
         if PixelsMarkedDirty[x][y] == True:
           # for each pixel in matrix that is dirty write out the pixel
           # clear the dirty pixel array
@@ -144,6 +161,7 @@ def display():
           writeXYRGBA( x, y, temp[C_BUFFER_RED], temp[C_BUFFER_GREEN], temp[C_BUFFER_BLUE], temp[C_BUFFER_BRIGHTNESS] )
           PixelsMarkedDirty[x][y] = False  
     PixelsDirty = False 
+display.lastTime = 0
 
 def bufferedWriteXYRGBA( xCord, yCord, red, green, blue, brightness = 255 ):
   global FrameBuffer
@@ -183,6 +201,10 @@ def bufferedClearScreen():
 
 def bufferedWhiteScreen():
   bufferedWriteAllRGBA(15, 15, 15, 15 )
+
+###########################################################
+# Frame Rate Counter
+###########################################################
 
 
 ############ Test Functions ###############################
@@ -243,4 +265,66 @@ def testNew():
     for y in range(0, C_LIGHT_BOARD_HEIGHT):
       for g in range( 0, 13 ):
         bufferedWriteXYRGBA(x, y,0, g, 0)
+
+def bufferedWholeScreenTest():
+  for r in range( 0, 15 ):
+    for b in range( 0, 15 ):
+      for g in range( 0, 15):
+        bufferedWriteAllRGBA(r, g, b, 128)
+        display()
+
+def bufferedWholeRGBScreenTest():
+  test = 0
+  while True:
+    if test == 0:
+      bufferedWriteAllRGBA( 15,  0,  0, 128)
+      display()
+      bufferedClearScreen()
+      display()
+      test = 1
+    elif test == 1:
+      bufferedWriteAllRGBA(  0, 15,  0, 128)
+      display()
+      bufferedClearScreen()
+      display()
+      test = 2
+    else:
+      bufferedWriteAllRGBA(  0,  0, 15, 128)
+      display()
+      bufferedClearScreen()
+      display()
+      test = 0
+
+def TrippyHelp(x, y, test):
+  if test == 0:
+    bufferedWriteXYRGBA( x, y, 15,  0,  0, 128)
+    test = 1
+  elif test == 1:
+    bufferedWriteXYRGBA( x, y, 0, 15,  0, 128)
+    test = 2
+  elif test == 2:
+    bufferedWriteXYRGBA( x, y, 0,  0, 15, 128)
+    test = 0
+  elif test == 3:
+    bufferedWriteXYRGBA( x, y, 0, 15, 15, 128)
+    test = 4
+  elif test == 4:
+    bufferedWriteXYRGBA( x, y, 15, 15, 0, 128)
+    test = 5
+  elif test == 5:
+    bufferedWriteXYRGBA( x, y, 15,  0, 15, 128)
+    test = 0
+  return test
+
+def trippy():
+  global WholeBufferDirty
+
+  temp = 0
+  while True:
+    for x in range(0, C_LIGHT_BOARD_WIDTH):
+      for y in range(0, C_LIGHT_BOARD_HEIGHT):
+        temp = TrippyHelp(x, y, temp)
+    WholeBufferDirty = True
+    display()
+  
 

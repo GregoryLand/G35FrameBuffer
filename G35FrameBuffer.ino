@@ -36,7 +36,7 @@ struct Message
   uint16_t   color;
 };
 
-// Constants Buffer for messages
+// Constants Buffer for messagestest
 const int MESSAGE_SIZE            = 4;                                      // Number of bytes in message
 const int FULL_BUFFER_OF_MESSAGES = NUMBER_OF_LEDS;                         // Max Messages we could get in one frame buffer update
 const int MESSAGE_BUFFER_SIZE     = MESSAGE_SIZE * FULL_BUFFER_OF_MESSAGES; // Size of buffer needed to store messages
@@ -81,13 +81,13 @@ uint32_t PackG35Message( uint8_t led, uint8_t brightness, uint16_t color )
 void setup()
 {  
   // Constants For LCD SCREEN
-  const int LCD_BAUD_RATE        = 96000;//95000;//90000;//9600;
+  const int LCD_BAUD_RATE        = 9600;//95000;//90000;//9600;
   const int FORM_FEED            = 12;
   const int BACKLIGHT_ON         = 17;
   const int MOVE_TO_LINE_1_POS_0 = 148;
   
   // Constants For Serial Connection
-  const int BAUD_RATE            = 9600;//115200; //38400; // Basic tests gives 31000 as a close to max baud rate. more testing needed 
+  const int BAUD_RATE            = 28800;//96000;//115200; //9600;//115200; //38400; // Basic tests gives 31000 as a close to max baud rate. more testing needed 
 
   // Clear and Write to Lcd Screenx
   //LCD.begin(LCD_BAUD_RATE);              // Setup Lcd baud rate
