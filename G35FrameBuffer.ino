@@ -3,14 +3,14 @@
 //#include <SoftwareSerial.h>
 #include <G35String.h>
 #include <G35StringGroup.h>
-#include <TimerOne.h>
+#include "G35TimerOne.h"
 //#include "led_utils.h"
 
 // Debug constants
 //#define DEBUG_SERIAL_MESSAGE_BUFFER
 //#define DEBUG_COLOR_MESSAGES
 //#define DEBUG_SERIAL_LOOPCOUNT
-#define DEBUG_BIT_BANG
+//#define DEBUG_BIT_BANG
 
 // Create the SoftwareSerial object and give it a rx and tx pin
 const int RX_PIN = 2;
@@ -21,8 +21,8 @@ const int TX_PIN = 3;
 const int LEDS_PER_STRING   = 35;
 const int NUMBER_OF_STRINGS =  2;
 const int NUMBER_OF_LEDS = NUMBER_OF_STRINGS * LEDS_PER_STRING;  // if number of leds is larger then 255 we need to modify the type for FirstMessageToProcess and LastMessageToProcess
-const int STRING_ONE_PIN = 8;
-const int STRING_TWO_PIN = 7;
+const int STRING_ONE_PIN = 10;
+const int STRING_TWO_PIN = 9;
 
 // Build Objects for each string
 G35String string1(STRING_ONE_PIN, LEDS_PER_STRING);
@@ -52,29 +52,36 @@ uint8_t BytesOfNextMessageSoFar =  0;
 // States for bit bang
 const uint8_t NOT_TRANSMITTING   = 0;
 const uint8_t READY_TO_TRANSMIT  = 1;
-const uint8_t SENDING_START_BIT  = 2;
-const uint8_t SENDING_DATA       = 3;
-const uint8_t SENDING_STOP_BIT   = 4;
-const uint8_t DELAY_BEFORE_READY = 5;
-// Driving information
-const int SHORT_PULSE            = 7;
-
-boolean StringOneBitStash     = false;
-boolean StringTwoBitStash     = false;
-uint8_t StringOneState        = NOT_TRANSMITTING;
-uint8_t StringTwoState        = NOT_TRANSMITTING;
-uint8_t StringOneTempo        = 0;
-uint8_t StringTwoTempo        = 0;
-uint8_t StringOneSendProgress = 0;
-uint8_t StringTwoSendProgress = 0;
+const uint8_t SENDING_DATA       = 2;
+const uint8_t SENDING_STOP_BIT   = 3;
+const uint8_t DELAY_BEFORE_READY = 4;
+uint8_t StringOneState = NOT_TRANSMITTING;
+uint8_t StringTwoState = NOT_TRANSMITTING;
+uint16_t StringOneNextBit = HOLD_LOW;
+uint16_t StringTwoNextBit = HOLD_LOW;
 uint32_t StringOneMessage = 0;
 uint32_t StringTwoMessage = 0;
 
+uint32_t PackG35Message( uint8_t led, uint8_t brightness, uint16_t color )
+{
+  // Do the bit packing  
+  uint32_t temp = 0;
+  // Pack the data struct
+  temp += color;
+  // Pack Brightness bits into bits 21-13
+  temp += (uint32_t)brightness << 12;
+  // Pack ID Number
+  temp += (uint32_t)led << 20;
+  
+  return temp;
+}
+
+//Message tempM = {0};
 
 void setup()
 {  
   // Constants For LCD SCREEN
-  const int LCD_BAUD_RATE        = 9600;
+  const int LCD_BAUD_RATE        = 96000;//95000;//90000;//9600;
   const int FORM_FEED            = 12;
   const int BACKLIGHT_ON         = 17;
   const int MOVE_TO_LINE_1_POS_0 = 148;
@@ -88,16 +95,16 @@ void setup()
   //LCD.write(BACKLIGHT_ON);               // Turn on backlight (Parallax LCD)
   //LCD.print("Framebuffer Test");         // Pass a message to display
   //LCD.write(MOVE_TO_LINE_1_POS_0);       // move to line 1 pos 0
-  
+
   // Start up the G35
   string1.enumerate();
   string2.enumerate();
   
   // Start Serial Connection 
   Serial.begin(BAUD_RATE);
-  
-  // Start the timer
-  Timer1.initialize();
+
+  Serial.println((uint32_t)(1L << 25), BIN);
+  SetupTimerOne();
 }
 
 void loop() 
@@ -105,7 +112,11 @@ void loop()
   #ifdef DEBUG_BIT_BANG
   //Serial.print("Line1 Send Progress = "); Serial.print(StringOneSendProgress);
   #endif  
-  
+  #ifdef DEBUG_COLOR_MESSAGES
+    Serial.print(" Packed Message: "); Serial.println(StringOneMessage, BIN);
+    Serial.print(" Packed Message: "); Serial.println(StringTwoMessage, BIN);
+  #endif  
+
   // If Messages To Process
   if( LastMessageToProcess != -1 )
   {
@@ -114,27 +125,31 @@ void loop()
     Serial.print("Last Message to Process = ");  Serial.println(LastMessageToProcess);
     #endif
 
-    Serial.println("LOOP");
+    //Serial.println("LOOP");
     // Send Message
-    if( reinterpret_cast<Message&>(MessageBuffer[FirstMessageToProcess * MESSAGE_SIZE]).led < LEDS_PER_STRING )
+    Message& tempM = reinterpret_cast<Message&>(MessageBuffer[FirstMessageToProcess * MESSAGE_SIZE]);
+    //tempM.led++;
+    if( tempM.led < LEDS_PER_STRING )
     {
       // Prepare messages for bit bang
       if( StringOneState == NOT_TRANSMITTING )
       { 
-        StringOneMessage = PackG35Message( (reinterpret_cast<Message&>(MessageBuffer[FirstMessageToProcess * MESSAGE_SIZE])) );
-        StringOneState = READY_TO_TRANSMIT;
-        Serial.println("Line1");
+        StringOneMessage = PackG35Message(tempM.led, tempM.brightness, tempM.color);
+        StringOneNextBit = SEND_A_ONE;
+        StringOneState   = READY_TO_TRANSMIT;
+        if( StringTwoState == NOT_TRANSMITTING ) startTimer();
+        //Serial.println("Line1");
       }
     }
     else
     {
       if( StringTwoState == NOT_TRANSMITTING ) 
       {
-        Message& temp = (reinterpret_cast<Message&>(MessageBuffer[FirstMessageToProcess * MESSAGE_SIZE]));
-        temp.led -= LEDS_PER_STRING;
-        StringTwoMessage = PackG35Message( temp );
-        StringTwoState = READY_TO_TRANSMIT;
-        Serial.println("Line2");
+        StringTwoMessage = PackG35Message(tempM.led - LEDS_PER_STRING, tempM.brightness, tempM.color);
+        StringTwoNextBit = SEND_A_ONE;
+        StringTwoState   = READY_TO_TRANSMIT;
+        if( StringOneState == NOT_TRANSMITTING ) startTimer();
+        //Serial.println("Line2");
       }
     }
     // Setup for next run
@@ -150,8 +165,6 @@ void loop()
       FirstMessageToProcess++;
     }
     
-    Timer1.attachInterrupt( KnockBits );
-    
     #ifdef DEBUG_COLOR_MESSAGES
     Serial.print(" Packed Message: "); Serial.println(StringOneMessage, BIN);
     Serial.print(" Packed Message: "); Serial.println(StringTwoMessage, BIN);
@@ -161,6 +174,68 @@ void loop()
     #endif
   }
 
+}
+
+// This is our callback from the timer when top is reached
+// This meens 30 microseconds has passed and we are ready to
+// send the next bit
+uint8_t stringOneProgress = 0;
+uint8_t stringTwoProgress = 0;
+ISR( TIMER1_OVF_vect )
+{
+  OCR1B = StringOneNextBit;
+  OCR1A = StringTwoNextBit;
+  
+  switch(StringOneState)
+  {
+    case READY_TO_TRANSMIT:
+      StringOneState = SENDING_DATA;
+    case SENDING_DATA:
+      if( (StringOneMessage & ( 1L << 25 )) > 0 )
+      { 
+        StringOneNextBit = SEND_A_ONE;
+      }
+      else
+      {
+        StringOneNextBit = SEND_A_ZERO;
+      }
+      stringOneProgress++;
+      StringOneMessage = StringOneMessage << 1;
+      if(stringOneProgress > 25) StringOneState = SENDING_STOP_BIT;
+      break;
+    case SENDING_STOP_BIT:
+      StringOneNextBit = HOLD_LOW;
+      StringOneState   = NOT_TRANSMITTING;
+      stringOneProgress = 0;
+      break;
+    case NOT_TRANSMITTING:
+      break;
+  }
+  switch(StringTwoState)
+  {
+    case READY_TO_TRANSMIT:
+      StringTwoState = SENDING_DATA;
+    case SENDING_DATA:
+      if( (StringTwoMessage & ( 1L << 25 )) > 0 )
+      { 
+        StringTwoNextBit = SEND_A_ONE;
+      }
+      else
+      {
+        StringTwoNextBit = SEND_A_ZERO;
+      }
+      stringTwoProgress++;
+      if(stringTwoProgress > 25) StringTwoState = SENDING_STOP_BIT;
+      StringTwoMessage = StringTwoMessage << 1;
+      break;
+    case SENDING_STOP_BIT:
+      StringTwoNextBit = HOLD_LOW;
+      StringTwoState   = NOT_TRANSMITTING;
+      stringTwoProgress = 0;
+      break;
+    case NOT_TRANSMITTING:
+      break;
+  }
 }
 
 void serialEvent()
@@ -231,120 +306,4 @@ void serialEvent()
   const int ASSUMED_NUMBER_OF_MAX_LOOPS = 64;
   if( loopCounter > ASSUMED_NUMBER_OF_MAX_LOOPS ) Serial.write("We are pulling more data out of the ring buffer then I thought possible");
   #endif
-}
-
-inline void BitBangString( uint8_t stringPin, uint8_t state, uint8_t progress, uint8_t tempo, uint32_t data, boolean stashBit )
-{   
-  Serial.print("Bang = Progress" ); Serial.print(progress, DEC); Serial.print(" State = "); Serial.println(state);
-  // Constants
-  const int END_DELAY_MULTIPLIER = 6;
-  const uint8_t LAST_BIT_PLACE   = 26;
-  const uint32_t BIT_MASK = 1 << LAST_BIT_PLACE;
-  
-  switch(state)
-  {
-    case NOT_TRANSMITTING:
-      return;
-    case READY_TO_TRANSMIT:
-      progress = 0;
-      tempo    = 0;
-      state    = SENDING_START_BIT;
-      break;
-    case SENDING_START_BIT:
-      digitalWrite( stringPin, HIGH);
-      state = SENDING_DATA;
-      break;
-    case SENDING_DATA:
-      switch(tempo)
-      {
-        case 0:
-          digitalWrite( stringPin, LOW);
-          if( data & BIT_MASK )
-          {
-            //Serial.println( data, BIN );
-            // Pulse on One
-            stashBit = true;
-          }
-          else
-          {
-            // Pulse On Two
-            stashBit = false;
-          }
-          tempo++;
-          break;
-        case 1:
-          if( stashBit )
-          {
-            digitalWrite( stringPin, HIGH);
-          }
-          else
-          {
-            digitalWrite( stringPin, LOW);
-          }
-          data = data << 1;
-          tempo++;
-          break;
-        case 2:
-          digitalWrite( stringPin, HIGH );
-          tempo = 0;
-          progress++;
-          if(progress >= LAST_BIT_PLACE - 1)
-          {
-            state = SENDING_STOP_BIT;
-            //Serial.println(progress, DEC);
-            break;
-          }  
-          break;
-      }
-      break;
-    case SENDING_STOP_BIT:
-      digitalWrite( stringPin, LOW);
-      state = DELAY_BEFORE_READY;
-      break;
-    case DELAY_BEFORE_READY:
-      if( tempo >= END_DELAY_MULTIPLIER )
-      {
-        state = NOT_TRANSMITTING;
-        if( StringOneState == NOT_TRANSMITTING && StringTwoState == NOT_TRANSMITTING )
-        {  
-          Timer1.stop(); 
-        }
-      }
-      tempo++;
-      break;
-  }
-}
-inline void BitBangStringOne()
-{
-  #ifdef DEBUG_BIT_BANG
-  //Serial.println("Ln1");
-  #endif
-  BitBangString(STRING_ONE_PIN, StringOneState, StringOneSendProgress, StringOneTempo, StringOneMessage, StringOneBitStash );
-}
-inline void BitBangStringTwo()
-{
-  BitBangString(STRING_TWO_PIN, StringTwoState, StringTwoSendProgress, StringTwoTempo, StringTwoMessage, StringTwoBitStash );
-}
-void KnockBits()
-{
-  //Serial.println("BB");
-  //BitBangString(STRING_ONE_PIN, StringOneState, StringOneSendProgress, StringOneTempo, StringOneMessage, StringOneBitStash );
-  //Serial.println("Interupt");
-  BitBangStringOne();
-  BitBangStringTwo();
-  //Timer1.restart();  
-}
-
-uint32_t PackG35Message( struct Message& data )
-{
-  // Do the bit packing  
-  uint32_t temp = 0;
-  // Pack the data struct
-  temp += data.color;
-  // Pack Brightness bits into bits 21-13
-  temp += (uint32_t)data.brightness << 12;
-  // Pack ID Number
-  temp += (uint32_t)data.led << 20;
-  
-  return temp;
 }

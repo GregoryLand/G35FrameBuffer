@@ -27,7 +27,7 @@ import threading # Needed for testing of automated screen clear
 
 ###### Constants(sort of dont change while running code) #####
 # Throw down some constants
-C_BAUDRATE = 28800  #9600 #115200#38400
+C_BAUDRATE = 96000  #90000 #57600 #115200
 C_NUMBER_OF_LIGHTS = 70
 # Lookup table for mapping x,y cordnets to led numbers on the board
 C_LOOKUP_TABLE = [[63,64,65,66,67,68,69],[62,61,60,59,58,57,56],[49,50,51,52,53,54,55],[48,47,46,45,44,43,42],[35,36,37,38,39,40,41],[34,33,32,31,30,29,28],[21,22,23,24,25,26,27],[20,19,18,17,16,15,14],[7,8,9,10,11,12,13],[6,5,4,3,2,1,0]]                         
@@ -237,4 +237,10 @@ def TestBuffer():
 def testDoTheDisplay():
   threading.Timer(0.04, testDoTheDisplay).start()
   display()
+
+def testNew():
+  for x in range(0, C_LIGHT_BOARD_WIDTH):
+    for y in range(0, C_LIGHT_BOARD_HEIGHT):
+      for g in range( 0, 13 ):
+        bufferedWriteXYRGBA(x, y,0, g, 0)
 
