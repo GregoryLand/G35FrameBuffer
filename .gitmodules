@@ -1,0 +1,3 @@
+[submodule "libraries/G35Arduino"]
+	path = libraries/G35Arduino
+	url = https://github.com/sowbug/G35Arduino.git
