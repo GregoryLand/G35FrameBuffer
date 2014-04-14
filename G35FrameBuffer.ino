@@ -69,6 +69,8 @@ uint16_t StringTwoNextBit = HOLD_LOW;
 uint32_t StringOneMessage = 0;
 uint32_t StringTwoMessage = 0;
 
+void serialProcess();
+
 uint32_t PackG35Message( uint8_t led, uint8_t brightness, uint16_t color )
 {
   // Do the bit packing  
@@ -203,6 +205,7 @@ void loop()
     #endif
   }
 
+  //serialProcess();
 }
 
 // This is our callback from the timer when top is reached

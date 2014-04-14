@@ -78,7 +78,8 @@ def writeAll( color1, color2 ):
 def writeRGBA( led, red, green, blue, brightness = 255 ):
   # Bitshift green value so we can add it to red for transmit
   green = green << 4
-  ser.write( [ led, brightness, green + red, blue ] )
+  ser.write( [ led, brightness, green + red, blue] )
+  #ser.write( [ blue ] )
   if F_DEBUG == True:
     print( "led = " + str(led) + " red = " + str(red) + " blue = " + str(blue) + " green = " + str(green) )
     print( "Sending: led = " +  str(led) + " brightness = " + str(brightness) + " color1 = " + str(green + red) + " color2 = " + str(blue) )
