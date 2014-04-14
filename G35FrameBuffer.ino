@@ -1,10 +1,8 @@
 // Hack Pittsburgh Frame Buffer Test
+#include <Arduino.h>
 #include <stdint.h>
-//#include <SoftwareSerial.h>
 #include <G35String.h>
-#include <G35StringGroup.h>
 #include "G35TimerOne.h"
-//#include "led_utils.h"
 
 // Debug constants
 // WARNING: Debuging outputs WILL screw with the timing for the interupts
@@ -14,11 +12,16 @@
 //#define DEBUG_COLOR_MESSAGES
 //#define DEBUG_SERIAL_LOOPCOUNT
 //#define DEBUG_BIT_BANG
+//#define LCD_SCREEN_ENABLE
 
-// Create the SoftwareSerial object and give it a rx and tx pin
-const int RX_PIN = 2;
-const int TX_PIN = 3;
-//SoftwareSerial LCD(RX_PIN, TX_PIN); 
+#ifdef LCD_SCREEN_ENABLE
+  #include <SoftwareSerial.h>
+  
+  // Create the SoftwareSerial object and give it a rx and tx pin
+  const int RX_PIN = 2;
+  const int TX_PIN = 3;
+  SoftwareSerial LCD(RX_PIN, TX_PIN);   
+#endif
 
 // Constants for strings and light count.
 const int LEDS_PER_STRING   = 35;
@@ -31,6 +34,11 @@ const int STRING_TWO_PIN = 9;
 G35String string1(STRING_ONE_PIN, LEDS_PER_STRING);
 G35String string2(STRING_TWO_PIN, LEDS_PER_STRING);
 
+// Constants Buffer for messagestest
+const int MESSAGE_SIZE            = 4;                                      // Number of bytes in message
+const int FULL_BUFFER_OF_MESSAGES = NUMBER_OF_LEDS;                         // Max Messages we could get in one frame buffer update
+const int MESSAGE_BUFFER_SIZE     = MESSAGE_SIZE * FULL_BUFFER_OF_MESSAGES; // Size of buffer needed to store messages
+
 // Setup struct for messages
 struct Message
 {
@@ -39,13 +47,8 @@ struct Message
   uint16_t   color;
 };
 
-// Constants Buffer for messagestest
-const int MESSAGE_SIZE            = 4;                                      // Number of bytes in message
-const int FULL_BUFFER_OF_MESSAGES = NUMBER_OF_LEDS;                         // Max Messages we could get in one frame buffer update
-const int MESSAGE_BUFFER_SIZE     = MESSAGE_SIZE * FULL_BUFFER_OF_MESSAGES; // Size of buffer needed to store messages
-
 // Message Buffer and its data
-byte MessageBuffer[MESSAGE_BUFFER_SIZE] = {0};
+uint8_t MessageBuffer[MESSAGE_BUFFER_SIZE] = {0};
 int FirstOpenByteInBuffer       =  0;
 int8_t FirstMessageToProcess    =  0;
 int8_t LastMessageToProcess     = -1;
@@ -79,8 +82,6 @@ uint32_t PackG35Message( uint8_t led, uint8_t brightness, uint16_t color )
   return temp;
 }
 
-//Message tempM = {0};
-
 void setup()
 {  
   // Constants For Serial Connection
@@ -96,18 +97,20 @@ void setup()
   //const int BAUD_RATE = 115200;
 
   // Constants For LCD SCREEN
-  const int LCD_BAUD_RATE        = 9600;
-  const int FORM_FEED            = 12;
-  const int BACKLIGHT_ON         = 17;
-  const int MOVE_TO_LINE_1_POS_0 = 148;
+  #ifdef LCD_SCREEN_ENABLE
+    const int LCD_BAUD_RATE        = 9600;
+    const int FORM_FEED            = 12;
+    const int BACKLIGHT_ON         = 17;
+    const int MOVE_TO_LINE_1_POS_0 = 148;
   
-  // Clear and Write to Lcd Screenx
-  //LCD.begin(LCD_BAUD_RATE);              // Setup Lcd baud rate
-  //LCD.write(FORM_FEED);                  // Form Feed, clear screen
-  //LCD.write(BACKLIGHT_ON);               // Turn on backlight (Parallax LCD)
-  //LCD.print("Framebuffer Test");         // Pass a message to display
-  //LCD.write(MOVE_TO_LINE_1_POS_0);       // move to line 1 pos 0
-
+    // Clear and Write to Lcd Screenx
+    LCD.begin(LCD_BAUD_RATE);              // Setup Lcd baud rate
+    LCD.write(FORM_FEED);                  // Form Feed, clear screen
+    LCD.write(BACKLIGHT_ON);               // Turn on backlight (Parallax LCD)
+    LCD.print("Framebuffer Test");         // Pass a message to display
+    LCD.write(MOVE_TO_LINE_1_POS_0);       // move to line 1 pos 0
+  #endif
+    
   // Start up the G35
   string1.enumerate();
   string2.enumerate();
@@ -132,14 +135,13 @@ void loop()
   if( LastMessageToProcess != -1 )
   {
     #ifdef DEBUG_COLOR_MESSAGES
-    Serial.print("First Message to Process = "); Serial.println(FirstMessageToProcess);
-    Serial.print("Last Message to Process = ");  Serial.println(LastMessageToProcess);
+      Serial.print("First Message to Process = "); Serial.println(FirstMessageToProcess);
+      Serial.print("Last Message to Process = ");  Serial.println(LastMessageToProcess);
     #endif
 
-    //Serial.println("LOOP");
     // Send Message
-    Message& tempM = reinterpret_cast<Message&>(MessageBuffer[FirstMessageToProcess * MESSAGE_SIZE]);
-    //tempM.led++;
+    Message tempM = reinterpret_cast<Message&>( (MessageBuffer[FirstMessageToProcess * MESSAGE_SIZE]) );
+   
     if( tempM.led < LEDS_PER_STRING )
     {
       // Prepare messages for bit bang

@@ -47,8 +47,8 @@
 
 #include "fonts.h"
 
-#define  LED_STRING_1  8
-#define  LED_STRING_2  7
+#define  LED_STRING_1  9
+#define  LED_STRING_2 10
 #define  LEDS_PER_STRING  35
 
 
