@@ -5,18 +5,18 @@
 #define G35TimerOne_H
 
 uint16_t CLOCKCYCLES_IN_30_MICROSECONDS = (F_CPU / 1000000) * 30;
-uint16_t SHORT_PULSE_TIME = CLOCKCYCLES_IN_30_MICROSECONDS / 3;
-uint16_t LONG_PULSE_TIME  = SHORT_PULSE_TIME * 2;
-uint16_t SEND_A_ZERO = SHORT_PULSE_TIME;
-uint16_t SEND_A_ONE  = LONG_PULSE_TIME;
-uint16_t HOLD_LOW    = CLOCKCYCLES_IN_30_MICROSECONDS;
+uint16_t SHORT_PULSE_TIME               = CLOCKCYCLES_IN_30_MICROSECONDS / 3;
+uint16_t LONG_PULSE_TIME                = SHORT_PULSE_TIME * 2;
+uint16_t SEND_A_ZERO                    = SHORT_PULSE_TIME;
+uint16_t SEND_A_ONE                     = LONG_PULSE_TIME;
+uint16_t HOLD_LOW                       = CLOCKCYCLES_IN_30_MICROSECONDS;
 
-void stopTimer()
+inline void stopTimer()
 {
   // Set the clock for the counter to none
   TCCR1B &= ~(1 << CS10 | 1 << CS11 | 1 << CS12);
 }
-void startTimer()
+inline void startTimer()
 {
   // Set the clock for the counter to no prescaling mode
   // Set Multiplier for Timer to one to one with the cpu clock

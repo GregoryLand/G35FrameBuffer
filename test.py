@@ -32,9 +32,8 @@ import threading # Needed for testing of automated screen clear
 #C_BAUDRATE = 19200
 #C_BAUDRATE = 28800
 #C_BAUDRATE = 31000
-#C_BAUDRATE = 32690
+C_BAUDRATE = 32750  # 11.67 Frames a second pushing full frame
 ##NOT WORKING###############
-C_BAUDRATE = 32750
 #C_BAUDRATE = 38400
 #C_BAUDRATE = 57600
 #C_BAUDRATE = 115200
@@ -53,7 +52,7 @@ F_DEBUG = False
 # Setup and open the Serial connection
 ser = serial.Serial()
 ser.baudrate = C_BAUDRATE
-ser.port = "//dev//ttyACM1"
+ser.port = "//dev//ttyACM0"
 ser.xonxoff = False
 ser.dsrdtr  = False
 ser.dsrdtr  = False

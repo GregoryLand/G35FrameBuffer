@@ -23,7 +23,8 @@ const int TX_PIN = 3;
 // Constants for strings and light count.
 const int LEDS_PER_STRING   = 35;
 const int NUMBER_OF_STRINGS =  2;
-const int NUMBER_OF_LEDS = NUMBER_OF_STRINGS * LEDS_PER_STRING;  // if number of leds is larger then 255 we need to modify the type for FirstMessageToProcess and LastMessageToProcess
+const int NUMBER_OF_LEDS = NUMBER_OF_STRINGS * LEDS_PER_STRING;  // if number of leds is larger then 255 we need 
+to modify the type for FirstMessageToProcess and LastMessageToProcess
 const int STRING_ONE_PIN = 10;
 const int STRING_TWO_PIN = 9;
 
@@ -41,8 +42,10 @@ struct Message
 
 // Constants Buffer for messagestest
 const int MESSAGE_SIZE            = 4;                                      // Number of bytes in message
-const int FULL_BUFFER_OF_MESSAGES = NUMBER_OF_LEDS;                         // Max Messages we could get in one frame buffer update
-const int MESSAGE_BUFFER_SIZE     = MESSAGE_SIZE * FULL_BUFFER_OF_MESSAGES; // Size of buffer needed to store messages
+const int FULL_BUFFER_OF_MESSAGES = NUMBER_OF_LEDS;                         // Max Messages we could get in one 
+frame buffer update
+const int MESSAGE_BUFFER_SIZE     = MESSAGE_SIZE * FULL_BUFFER_OF_MESSAGES; // Size of buffer needed to store 
+messages
 
 // Message Buffer and its data
 byte MessageBuffer[MESSAGE_BUFFER_SIZE] = {0};
@@ -282,7 +285,8 @@ void serialEvent()
       #ifdef DEBUG_SERIAL_MESSAGE_BUFFER
         // If we are about to start the buffer over and we haven't processed the first message
         // in the buffer yet we are in trouble
-        if( FirstMessageToProcess == 0 && LastMessageToProcess != 0 ) Serial.write("ERROR: Message Buffer was overwritten");
+        if( FirstMessageToProcess == 0 && LastMessageToProcess != 0 ) Serial.write("ERROR: Message Buffer was 
+overwritten");
       #endif
       
       FirstOpenByteInBuffer = 0;
