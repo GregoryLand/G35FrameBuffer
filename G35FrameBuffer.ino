@@ -1,6 +1,7 @@
 // Hack Pittsburgh Frame Buffer Test
 #include <Arduino.h>
 #include <stdint.h>
+#include <util/atomic.h>
 #include <G35String.h>
 #include "G35TimerOne.h"
 
@@ -49,7 +50,7 @@ struct Message
 
 // Message Buffer and its data
 uint8_t MessageBuffer[MESSAGE_BUFFER_SIZE] = {0};
-int FirstOpenByteInBuffer       =  0;
+int16_t FirstOpenByteInBuffer   =  0;
 int8_t FirstMessageToProcess    =  0;
 int8_t LastMessageToProcess     = -1;
 uint8_t BytesOfNextMessageSoFar =  0;
@@ -90,6 +91,7 @@ void setup()
   //const int BAUD_RATE = 28800; // Best Working so far still testing
   //const int BAUD_RATE = 31000;   // ?? Working Provides Faster framerates
   //const int BAUD_RATE = 32700;
+  //const int BAUD_RATE = 32000;
   const int BAUD_RATE = 32750;  // 11.67 frames a second
   //Not Working////////////////////////////////////////
   //const int BAUD_RATE = 38400;
@@ -115,6 +117,10 @@ void setup()
   string1.enumerate();
   string2.enumerate();
   
+  // Clear Red setup color
+  string1.fill_color( 0, LEDS_PER_STRING, 0, 0);
+  string2.fill_color( 0, LEDS_PER_STRING, 0, 0);
+
   // Start Serial Connection 
   Serial.begin(BAUD_RATE);
   
@@ -141,14 +147,17 @@ void loop()
 
     // Send Message
     Message tempM = reinterpret_cast<Message&>( (MessageBuffer[FirstMessageToProcess * MESSAGE_SIZE]) );
-   
+      
     if( tempM.led < LEDS_PER_STRING )
     {
       // Prepare messages for bit bang
       if( StringOneState == NOT_TRANSMITTING )
       { 
-        StringOneMessage = PackG35Message(tempM.led, tempM.brightness, tempM.color);
-        StringOneNextBit = SEND_A_ONE;
+//	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+//	{
+          StringOneMessage = PackG35Message(tempM.led, tempM.brightness, tempM.color);
+	  StringOneNextBit = SEND_A_ONE;
+//	}
         StringOneState   = READY_TO_TRANSMIT;
         if( StringTwoState == NOT_TRANSMITTING ) startTimer();
         #ifdef DEBUG_COLOR_MESSAGES
@@ -160,8 +169,11 @@ void loop()
     {
       if( StringTwoState == NOT_TRANSMITTING ) 
       {
-        StringTwoMessage = PackG35Message(tempM.led - LEDS_PER_STRING, tempM.brightness, tempM.color);
-        StringTwoNextBit = SEND_A_ONE;
+//	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+//	{
+          StringTwoMessage = PackG35Message(tempM.led - LEDS_PER_STRING, tempM.brightness, tempM.color);
+	  StringTwoNextBit = SEND_A_ONE;
+//	}
         StringTwoState   = READY_TO_TRANSMIT;
         if( StringOneState == NOT_TRANSMITTING ) startTimer();
         #ifdef DEBUG_COLOR_MESSAGES
@@ -294,7 +306,10 @@ void serialEvent()
     MessageBuffer[ FirstOpenByteInBuffer] = Serial.read();
     
     // Switch next active byte
-    FirstOpenByteInBuffer++;
+//    ATOMIC_BLOCK( ATOMIC_RESTORESTATE )
+//    {
+      FirstOpenByteInBuffer++;
+//    }
     
     // Keep track of how many bytes belong in the message we are saving
     BytesOfNextMessageSoFar++;

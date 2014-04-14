@@ -32,6 +32,7 @@ import threading # Needed for testing of automated screen clear
 #C_BAUDRATE = 19200
 #C_BAUDRATE = 28800
 #C_BAUDRATE = 31000
+#C_BAUDRATE = 32000
 C_BAUDRATE = 32750  # 11.67 Frames a second pushing full frame
 ##NOT WORKING###############
 #C_BAUDRATE = 38400
@@ -119,24 +120,33 @@ C_BUFFER_RED        = 0
 C_BUFFER_GREEN      = 1
 C_BUFFER_BLUE       = 2
 C_BUFFER_BRIGHTNESS = 3
-
+C_MAX_FRAMES_BETWEEN_FULL_SYNC = 48
 # This could be done with a list better later as long as dynamic alocation doesn't become a slowdown
 # A list will reduce the number of opps needed to render everything out though
 PixelsMarkedDirty = [ [ False for j in range(C_LIGHT_BOARD_HEIGHT) ] for i in range(C_LIGHT_BOARD_WIDTH) ]
 PixelsDirty = False
 WholeBufferDirty = False
+lastTime = 0
+fps = 0
+framesSinceFullRefresh = 0
 
 def display():
   global FrameBuffer
   global PixelsMarkedDirty
   global WholeBufferDirty
   global PixelsDirty
-  
-  deltaTime = time.perf_counter() - display.lastTime
-  print( "Frames Per Second = " + str( 1.0 / deltaTime) )
-  display.lastTime = time.perf_counter()
+  global lastTime
+  global fps
+  global framesSinceFullRefresh
 
-  if WholeBufferDirty == True:   # If we did something to make all the pixels dirty write them all out and clean up the dirty markers along the way
+  deltaTime = time.perf_counter() - lastTime
+  fps = 1.0 / deltaTime;
+  print( "Frames Per Second = " + str( 1.0 / deltaTime) )
+  lastTime = time.perf_counter()
+
+  # If we did something to make all the pixels dirty write them all out and clean up the dirty markers along the way
+  # OR if we need todo a sync frame for error eliminaton reasons
+  if WholeBufferDirty == True or framesSinceFullRefresh > C_MAX_FRAMES_BETWEEN_FULL_SYNC:   
     for x in range(0, 5):
       for y in range(0, C_LIGHT_BOARD_HEIGHT):
         temp = FrameBuffer[x][y]
@@ -147,20 +157,55 @@ def display():
         PixelsMarkedDirty[x + 5][y] = False
     PixelsDirty = False
     WholeBufferDirty = False
+    framesSinceFullRefresh = 0
     return
 
   # if we have dirty pixels write them out to the board and clean up the dirty markers
+  DirtyPixelCount = 0
   if PixelsDirty == True:
     for y in range(0, C_LIGHT_BOARD_HEIGHT):
       for x in range(0, C_LIGHT_BOARD_WIDTH):
         if PixelsMarkedDirty[x][y] == True:
+          DirtyPixelCount += 1
           # for each pixel in matrix that is dirty write out the pixel
           # clear the dirty pixel array
           temp = FrameBuffer[x][y]
           writeXYRGBA( x, y, temp[C_BUFFER_RED], temp[C_BUFFER_GREEN], temp[C_BUFFER_BLUE], temp[C_BUFFER_BRIGHTNESS] )
           PixelsMarkedDirty[x][y] = False  
     PixelsDirty = False 
-display.lastTime = 0
+
+  # Keep track of how many frames we have had since a full refresh
+  framesSinceFullRefresh += 1
+  
+  # if we reset all of the pixels this time keep track of that
+  if( DirtyPixelCount >= C_NUMBER_OF_LIGHTS ):
+    framesSinceFullRefresh = 0
+  
+def frameStabilizer():
+  global fps
+  global framesSinceFullRefresh 
+
+  if( fps == 0 or framesSinceFullRefresh == 0 ):
+     return
+  
+  if( fps - 1000 > 0):
+    frameStabilizer.sleepTime += 0.1
+  if( fps - 100 > 0 ):
+    frameStabilizer.sleepTime += 0.01
+#  if( fps - 45 > 0 ):
+#    frameStabilizer.sleepTime += 0.001
+#  if( fps < 15 ):
+#    frameStabilizer.sleepTime
+
+  if( fps > 24 ):
+    frameStabilizer.sleepTime += 0.001
+  elif( fps < 24 ): 
+    frameStabilizer.sleepTime -= 0.001
+
+  if( frameStabilizer.sleepTime > 0 ):
+    time.sleep(frameStabilizer.sleepTime)
+
+frameStabilizer.sleepTime = 0
 
 def bufferedWriteXYRGBA( xCord, yCord, red, green, blue, brightness = 255 ):
   global FrameBuffer
@@ -265,14 +310,14 @@ def testNew():
       for g in range( 0, 13 ):
         bufferedWriteXYRGBA(x, y,0, g, 0)
 
-def bufferedWholeScreenTest():
+def testBufferedWholeScreenTest():
   for r in range( 0, 15 ):
     for b in range( 0, 15 ):
       for g in range( 0, 15):
         bufferedWriteAllRGBA(r, g, b, 128)
         display()
 
-def bufferedWholeRGBScreenTest():
+def testBufferedWholeRGBScreenTest():
   test = 0
   while True:
     if test == 0:
@@ -315,7 +360,7 @@ def TrippyHelp(x, y, test):
     test = 0
   return test
 
-def trippy():
+def testTrippy():
   global WholeBufferDirty
 
   temp = 0
@@ -327,3 +372,19 @@ def trippy():
     display()
   
 
+def testBufferedRThenBThenG():
+  while True:
+    for x in range(0, C_LIGHT_BOARD_WIDTH):
+      for y in range(0, C_LIGHT_BOARD_HEIGHT):
+        for colorSelect in range(0,3):
+          for amount in range(0, 16):
+            if colorSelect == 0:
+              bufferedWriteXYRGBA(x, y, amount, 0, 0)
+            elif colorSelect == 1:
+              bufferedWriteXYRGBA(x, y, 0, amount, 0)
+            else:
+              bufferedWriteXYRGBA(x, y, 0, 0, amount)
+            display()
+            frameStabilizer()
+            #time.sleep(0.0402)
+            
