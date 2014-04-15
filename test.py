@@ -19,7 +19,6 @@
 # * | 63 | 62 | 49 | 48 | 35 | 34 | 21 | 20 |  7 |  6 |
 # * |----|----|----|----|----|----|----|----|----|----|
 #**************************************************************************************
-
 ###### Imports ######
 import serial
 import time      # Needed for some tests
@@ -247,11 +246,6 @@ def bufferedClearScreen():
 def bufferedWhiteScreen():
   bufferedWriteAllRGBA(15, 15, 15, 15 )
 
-###########################################################
-# Frame Rate Counter
-###########################################################
-
-
 ############ Test Functions ###############################
 #
 ###########################################################
@@ -279,18 +273,15 @@ def testEachLightOnceUsingXY():
       lastY = y
       time.sleep(1)
 
-
 def testXYSystem():
   # Set each pixel to red
   for x in range(0, C_LIGHT_BOARD_WIDTH ):
     for y in range(0, C_LIGHT_BOARD_HEIGHT ):
       writeXYRGBA( x, y, 15, 0, 0, 255 )
-
   # Clear for next text
   clearscreen()  
-
+  # Run each light 
   testEachLightOnceUsingXY()
-
 
 def TestBuffer():
   for x in range(0, C_LIGHT_BOARD_WIDTH):
@@ -372,7 +363,6 @@ def testTrippy():
     WholeBufferDirty = True
     display()
   
-
 def testBufferedRThenBThenG():
   while True:
     for x in range(0, C_LIGHT_BOARD_WIDTH):
@@ -387,5 +377,4 @@ def testBufferedRThenBThenG():
               bufferedWriteXYRGBA(x, y, 0, 0, amount)
             display()
             frameStabilizer()
-            #time.sleep(0.0402)
             
