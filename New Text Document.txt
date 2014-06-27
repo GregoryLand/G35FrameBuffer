@@ -1,5 +1,7 @@
 Windows
   Add hardlink for windows dir so we dont have to deal with Program Files (X86)
+	mklink /d c:\Arduino c:\Program Files (x86)\Arduino
+
   Setup makefile
 
 
