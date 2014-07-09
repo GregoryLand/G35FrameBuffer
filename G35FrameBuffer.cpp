@@ -1,7 +1,6 @@
 // Hack Pittsburgh Frame Buffer Test
 #include <Arduino.h>
 #include <stdint.h>
-#include <util/atomic.h>
 #include <G35String.h>
 #include "G35TimerOne.h"
 
@@ -9,6 +8,7 @@
 // WARNING: Debuging outputs WILL screw with the timing for the interupts
 // You may need to adjust the interupt timer if attempting to debug some
 // parts of the code
+
 //#define DEBUG_SERIAL_MESSAGE_BUFFER
 //#define DEBUG_COLOR_MESSAGES
 //#define DEBUG_SERIAL_LOOPCOUNT
@@ -17,7 +17,6 @@
 
 #ifdef LCD_SCREEN_ENABLE
   #include <SoftwareSerial.h>
-  
   // Create the SoftwareSerial object and give it a rx and tx pin
   const int RX_PIN = 2;
   const int TX_PIN = 3;
@@ -36,21 +35,17 @@ G35String string1(STRING_ONE_PIN, LEDS_PER_STRING);
 G35String string2(STRING_TWO_PIN, LEDS_PER_STRING);
 
 // Constants Buffer for messagestest
-const int MESSAGE_SIZE            = 4;                                      // Number of bytes in message
+const uint8_t MESSAGE_SIZE            = 4;                                      // Number of bytes in message
 const int FULL_BUFFER_OF_MESSAGES = NUMBER_OF_LEDS;                         // Max Messages we could get in one frame buffer update
 const int MESSAGE_BUFFER_SIZE     = MESSAGE_SIZE * FULL_BUFFER_OF_MESSAGES; // Size of buffer needed to store messages
-
-// Setup struct for messages
-struct Message
-{
-  uint8_t    led;
-  uint8_t    brightness;
-  uint16_t   color;
-};
+const uint8_t MESSAGE_BYTE_ID              = 0;
+const uint8_t MESSAGE_BYTE_BRIGHTNESS      = 1;
+const uint8_t MESSAGE_BYTE_COLOR_GREEN_RED = 2;
+const uint8_t MESSAGE_BYTE_COLOR_BLUE      = 3;
 
 // Message Buffer and its data
 uint8_t MessageBuffer[MESSAGE_BUFFER_SIZE] = {0};
-int16_t FirstOpenByteInBuffer   =  0;
+uint16_t FirstOpenByteInBuffer             =  0;
 int8_t FirstMessageToProcess    =  0;
 int8_t LastMessageToProcess     = -1;
 uint8_t BytesOfNextMessageSoFar =  0;
@@ -62,40 +57,25 @@ const uint8_t READY_TO_TRANSMIT  = 1;
 const uint8_t SENDING_DATA       = 2;
 const uint8_t SENDING_STOP_BIT   = 3;
 const uint8_t DELAY_BEFORE_READY = 4;
+
 uint8_t StringOneState = NOT_TRANSMITTING;
 uint8_t StringTwoState = NOT_TRANSMITTING;
 uint16_t StringOneNextBit = HOLD_LOW;
 uint16_t StringTwoNextBit = HOLD_LOW;
-uint32_t StringOneMessage = 0;
-uint32_t StringTwoMessage = 0;
-
-void serialProcess();
-
-uint32_t PackG35Message( uint8_t led, uint8_t brightness, uint16_t color )
-{
-  // Do the bit packing  
-  uint32_t temp = 0;
-  // Pack the data struct
-  temp += color;
-  // Pack Brightness bits into bits 21-13
-  temp += (uint32_t)brightness << 12;
-  // Pack ID Number
-  temp += (uint32_t)led << 20;
-  
-  return temp;
-}
+uint8_t StringOneMessage[MESSAGE_SIZE] ={0};
+uint8_t StringTwoMessage[MESSAGE_SIZE] ={0};
 
 void setup()
 {  
   // Constants For Serial Connection
-  //const int BAUD_RATE = 9600;
+  const int BAUD_RATE = 9600;
   //const int BAUD_RATE = 19200;
   //const int BAUD_RATE = 28800; // Best Working so far still testing
   //const int BAUD_RATE = 31000;   // ?? Working Provides Faster framerates
   //const int BAUD_RATE = 32700;
-  //const int BAUD_RATE = 32000;
-  const int BAUD_RATE = 32750;  // 11.67 frames a second
+  //const int BAUD_RATE = 32750;  // 11.67 frames a second
   //Not Working////////////////////////////////////////
+  //const int BAUD_RATE = 32790;
   //const int BAUD_RATE = 38400;
   //const int BAUD_RATE = 57600;
   //const int BAUD_RATE = 115200;
@@ -119,14 +99,17 @@ void setup()
   string1.enumerate();
   string2.enumerate();
   
-  // Clear Red setup color
-  string1.fill_color( 0, LEDS_PER_STRING, 0, 0);
-  string2.fill_color( 0, LEDS_PER_STRING, 0, 0);
-
+  // Disable Timer started by G35String
+  // WARNING: TIMER Zero IS USED FOR deleyMillisecond command
+  // Doing this probably borks it but i dont care.
+  TCCR0B &= ~(1 << CS00 | 1 << CS01 | 1 << CS02);
+  
   // Start Serial Connection 
   Serial.begin(BAUD_RATE);
   
+  // Setup Timer One
   SetupTimerOne();
+  //startTimer();
 }
 
 void loop() 
@@ -148,21 +131,27 @@ void loop()
     #endif
 
     // Send Message
-    Message tempM = reinterpret_cast<Message&>( (MessageBuffer[FirstMessageToProcess * MESSAGE_SIZE]) );
-      
-    if( tempM.led < LEDS_PER_STRING )
+    if( MessageBuffer[ FirstMessageToProcess + MESSAGE_BYTE_ID] < LEDS_PER_STRING )
     {
       // Prepare messages for bit bang
       if( StringOneState == NOT_TRANSMITTING )
       { 
-//	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-//	{
-          StringOneMessage = PackG35Message(tempM.led, tempM.brightness, tempM.color);
-	  StringOneNextBit = SEND_A_ONE;
-//	}
+		// Grab the message to send and place it in memory for the interupt
+        StringOneMessage[MESSAGE_BYTE_ID]              = MessageBuffer[ FirstMessageToProcess + MESSAGE_BYTE_ID];
+		StringOneMessage[MESSAGE_BYTE_BRIGHTNESS]      = MessageBuffer[ FirstMessageToProcess + MESSAGE_BYTE_BRIGHTNESS];
+		StringOneMessage[MESSAGE_BYTE_COLOR_GREEN_RED] = MessageBuffer[ FirstMessageToProcess + MESSAGE_BYTE_COLOR_GREEN_RED];
+		StringOneMessage[MESSAGE_BYTE_COLOR_BLUE]      = MessageBuffer[ FirstMessageToProcess + MESSAGE_BYTE_COLOR_BLUE];
+	
+		// Set initial ready pulse
+        StringOneNextBit = SEND_A_ONE;
+	
+		// Set state machine to READY_TO_TRANSMIT
         StringOneState   = READY_TO_TRANSMIT;
-        if( StringTwoState == NOT_TRANSMITTING ) startTimer();
-        #ifdef DEBUG_COLOR_MESSAGES
+        
+		// Make sure the timer is running
+		if( StringTwoState == NOT_TRANSMITTING ) startTimer();
+        
+		#ifdef DEBUG_COLOR_MESSAGES
           Serial.println("Line1");
         #endif
       }
@@ -171,14 +160,22 @@ void loop()
     {
       if( StringTwoState == NOT_TRANSMITTING ) 
       {
-//	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-//	{
-          StringTwoMessage = PackG35Message(tempM.led - LEDS_PER_STRING, tempM.brightness, tempM.color);
-	  StringTwoNextBit = SEND_A_ONE;
-//	}
+		// Grab the message to send and place it in memory for the interupt
+        StringTwoMessage[MESSAGE_BYTE_ID]              = MessageBuffer[ FirstMessageToProcess + MESSAGE_BYTE_ID] - LEDS_PER_STRING;
+		StringTwoMessage[MESSAGE_BYTE_BRIGHTNESS]      = MessageBuffer[ FirstMessageToProcess + MESSAGE_BYTE_BRIGHTNESS];
+		StringTwoMessage[MESSAGE_BYTE_COLOR_GREEN_RED] = MessageBuffer[ FirstMessageToProcess + MESSAGE_BYTE_COLOR_GREEN_RED];
+		StringTwoMessage[MESSAGE_BYTE_COLOR_BLUE]      = MessageBuffer[ FirstMessageToProcess + MESSAGE_BYTE_COLOR_BLUE];
+	
+		// Set initial ready pulse
+        StringTwoNextBit = SEND_A_ONE;
+	
+		// Set state machine to READY_TO_TRANSMIT
         StringTwoState   = READY_TO_TRANSMIT;
-        if( StringOneState == NOT_TRANSMITTING ) startTimer();
-        #ifdef DEBUG_COLOR_MESSAGES
+
+		// Make sure the timer is running
+		if( StringOneState == NOT_TRANSMITTING ) startTimer();
+        
+		#ifdef DEBUG_COLOR_MESSAGES
           Serial.println("Line2");
         #endif
       }
@@ -197,15 +194,11 @@ void loop()
     }
     
     #ifdef DEBUG_COLOR_MESSAGES
-    Serial.print(" Packed Message: "); Serial.println(StringOneMessage, BIN);
-    Serial.print(" Packed Message: "); Serial.println(StringTwoMessage, BIN);
     Serial.print("First Message to Process = "); Serial.println(FirstMessageToProcess);
     Serial.print("Last Message to Process = ");  Serial.println(LastMessageToProcess);
-    Serial.flush();
     #endif
   }
 
-  //serialProcess();
 }
 
 // This is our callback from the timer when top is reached
@@ -223,17 +216,57 @@ ISR( TIMER1_OVF_vect )
     case READY_TO_TRANSMIT:
       StringOneState = SENDING_DATA;
     case SENDING_DATA:
-      if( (StringOneMessage & ( 1L << 25 )) > 0 )
-      { 
-        StringOneNextBit = SEND_A_ONE;
-      }
-      else
+      if( stringOneProgress < 6 )
       {
-        StringOneNextBit = SEND_A_ZERO;
+	    if( (StringOneMessage[MESSAGE_BYTE_ID] & 0x20 ) != 0 )
+        { 
+          StringOneNextBit = SEND_A_ONE;
+        }
+        else
+        {
+          StringOneNextBit = SEND_A_ZERO;
+        }
+        StringOneMessage[MESSAGE_BYTE_ID] = StringOneMessage[MESSAGE_BYTE_ID] << 1;
+      }
+      else if( stringOneProgress < 14 )
+      {
+        if( (StringOneMessage[MESSAGE_BYTE_BRIGHTNESS] & 0x80 ) != 0 )
+        { 
+          StringOneNextBit = SEND_A_ONE;
+        }
+        else
+        {
+          StringOneNextBit = SEND_A_ZERO;
+        }
+        StringOneMessage[MESSAGE_BYTE_BRIGHTNESS] = StringOneMessage[MESSAGE_BYTE_BRIGHTNESS] << 1;
+      }
+      else if( stringOneProgress < 22 )
+      {
+        if( (StringOneMessage[MESSAGE_BYTE_COLOR_GREEN_RED] & 0x80 ) != 0 )
+        { 
+          StringOneNextBit = SEND_A_ONE;
+        }
+        else
+        {
+          StringOneNextBit = SEND_A_ZERO;
+        }
+        StringOneMessage[MESSAGE_BYTE_COLOR_GREEN_RED] = StringOneMessage[MESSAGE_BYTE_COLOR_GREEN_RED] << 1;
+      }
+      else 
+      {
+	    if( (StringOneMessage[MESSAGE_BYTE_COLOR_BLUE] & 0x08 ) != 0 )
+        { 
+          StringOneNextBit = SEND_A_ONE;
+        }
+        else
+        {
+          StringOneNextBit = SEND_A_ZERO;
+        }
+        StringOneMessage[MESSAGE_BYTE_COLOR_BLUE] = StringOneMessage[MESSAGE_BYTE_COLOR_BLUE] << 1;
+        if(stringOneProgress > 25) StringOneState = SENDING_STOP_BIT;	
       }
       stringOneProgress++;
-      StringOneMessage = StringOneMessage << 1;
-      if(stringOneProgress > 25) StringOneState = SENDING_STOP_BIT;
+      
       break;
     case SENDING_STOP_BIT:
       StringOneNextBit = HOLD_LOW;
@@ -248,17 +281,57 @@ ISR( TIMER1_OVF_vect )
     case READY_TO_TRANSMIT:
       StringTwoState = SENDING_DATA;
     case SENDING_DATA:
-      if( (StringTwoMessage & ( 1L << 25 )) > 0 )
-      { 
-        StringTwoNextBit = SEND_A_ONE;
-      }
-      else
+      if( stringTwoProgress < 6 )
       {
-        StringTwoNextBit = SEND_A_ZERO;
+	    if( (StringTwoMessage[MESSAGE_BYTE_ID] & 0x20 ) != 0 )
+        { 
+          StringTwoNextBit = SEND_A_ONE;
+        }
+        else
+        {
+          StringTwoNextBit = SEND_A_ZERO;
+        }
+        StringTwoMessage[MESSAGE_BYTE_ID] = StringTwoMessage[MESSAGE_BYTE_ID] << 1;
+      }
+      else if( stringTwoProgress < 14 )
+      {
+        if( (StringTwoMessage[MESSAGE_BYTE_BRIGHTNESS] & 0x80 ) != 0 )
+        { 
+          StringTwoNextBit = SEND_A_ONE;
+        }
+        else
+        {
+          StringTwoNextBit = SEND_A_ZERO;
+        }
+        StringTwoMessage[MESSAGE_BYTE_BRIGHTNESS] = StringTwoMessage[MESSAGE_BYTE_BRIGHTNESS] << 1;
+      }
+      else if( stringTwoProgress < 22 )
+      {
+        if( (StringTwoMessage[MESSAGE_BYTE_COLOR_GREEN_RED] & 0x80 ) != 0 )
+        { 
+          StringTwoNextBit = SEND_A_ONE;
+        }
+        else
+        {
+          StringTwoNextBit = SEND_A_ZERO;
+        }
+        StringTwoMessage[MESSAGE_BYTE_COLOR_GREEN_RED] = StringTwoMessage[MESSAGE_BYTE_COLOR_GREEN_RED] << 1;
+      }
+      else 
+      {
+	    if( (StringTwoMessage[MESSAGE_BYTE_COLOR_BLUE] & 0x08 ) != 0 )
+        { 
+          StringTwoNextBit = SEND_A_ONE;
+        }
+        else
+        {
+          StringTwoNextBit = SEND_A_ZERO;
+        }
+        StringTwoMessage[MESSAGE_BYTE_COLOR_BLUE] = StringTwoMessage[MESSAGE_BYTE_COLOR_BLUE] << 1;
+	    if(stringTwoProgress > 25) StringTwoState = SENDING_STOP_BIT;
       }
       stringTwoProgress++;
-      if(stringTwoProgress > 25) StringTwoState = SENDING_STOP_BIT;
-      StringTwoMessage = StringTwoMessage << 1;
+      
       break;
     case SENDING_STOP_BIT:
       StringTwoNextBit = HOLD_LOW;
@@ -309,10 +382,7 @@ void serialEvent()
     MessageBuffer[ FirstOpenByteInBuffer] = Serial.read();
     
     // Switch next active byte
-//    ATOMIC_BLOCK( ATOMIC_RESTORESTATE )
-//    {
-      FirstOpenByteInBuffer++;
-//    }
+    FirstOpenByteInBuffer++;
     
     // Keep track of how many bytes belong in the message we are saving
     BytesOfNextMessageSoFar++;
