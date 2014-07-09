@@ -136,22 +136,22 @@ void loop()
       // Prepare messages for bit bang
       if( StringOneState == NOT_TRANSMITTING )
       { 
-	// Grab the message to send and place it in memory for the interupt
+		// Grab the message to send and place it in memory for the interupt
         StringOneMessage[MESSAGE_BYTE_ID]              = MessageBuffer[ FirstMessageToProcess + MESSAGE_BYTE_ID];
-	StringOneMessage[MESSAGE_BYTE_BRIGHTNESS]      = MessageBuffer[ FirstMessageToProcess + MESSAGE_BYTE_BRIGHTNESS];
-	StringOneMessage[MESSAGE_BYTE_COLOR_GREEN_RED] = MessageBuffer[ FirstMessageToProcess + MESSAGE_BYTE_COLOR_GREEN_RED];
-	StringOneMessage[MESSAGE_BYTE_COLOR_BLUE]      = MessageBuffer[ FirstMessageToProcess + MESSAGE_BYTE_COLOR_BLUE];
+		StringOneMessage[MESSAGE_BYTE_BRIGHTNESS]      = MessageBuffer[ FirstMessageToProcess + MESSAGE_BYTE_BRIGHTNESS];
+		StringOneMessage[MESSAGE_BYTE_COLOR_GREEN_RED] = MessageBuffer[ FirstMessageToProcess + MESSAGE_BYTE_COLOR_GREEN_RED];
+		StringOneMessage[MESSAGE_BYTE_COLOR_BLUE]      = MessageBuffer[ FirstMessageToProcess + MESSAGE_BYTE_COLOR_BLUE];
 	
-	// Set initial ready pulse
+		// Set initial ready pulse
         StringOneNextBit = SEND_A_ONE;
 	
-	// Set state machine to READY_TO_TRANSMIT
+		// Set state machine to READY_TO_TRANSMIT
         StringOneState   = READY_TO_TRANSMIT;
         
-	// Make sure the timer is running
-	if( StringTwoState == NOT_TRANSMITTING ) startTimer();
+		// Make sure the timer is running
+		if( StringTwoState == NOT_TRANSMITTING ) startTimer();
         
-	#ifdef DEBUG_COLOR_MESSAGES
+		#ifdef DEBUG_COLOR_MESSAGES
           Serial.println("Line1");
         #endif
       }
@@ -160,22 +160,22 @@ void loop()
     {
       if( StringTwoState == NOT_TRANSMITTING ) 
       {
-	// Grab the message to send and place it in memory for the interupt
+		// Grab the message to send and place it in memory for the interupt
         StringTwoMessage[MESSAGE_BYTE_ID]              = MessageBuffer[ FirstMessageToProcess + MESSAGE_BYTE_ID] - LEDS_PER_STRING;
-	StringTwoMessage[MESSAGE_BYTE_BRIGHTNESS]      = MessageBuffer[ FirstMessageToProcess + MESSAGE_BYTE_BRIGHTNESS];
-	StringTwoMessage[MESSAGE_BYTE_COLOR_GREEN_RED] = MessageBuffer[ FirstMessageToProcess + MESSAGE_BYTE_COLOR_GREEN_RED];
-	StringTwoMessage[MESSAGE_BYTE_COLOR_BLUE]      = MessageBuffer[ FirstMessageToProcess + MESSAGE_BYTE_COLOR_BLUE];
+		StringTwoMessage[MESSAGE_BYTE_BRIGHTNESS]      = MessageBuffer[ FirstMessageToProcess + MESSAGE_BYTE_BRIGHTNESS];
+		StringTwoMessage[MESSAGE_BYTE_COLOR_GREEN_RED] = MessageBuffer[ FirstMessageToProcess + MESSAGE_BYTE_COLOR_GREEN_RED];
+		StringTwoMessage[MESSAGE_BYTE_COLOR_BLUE]      = MessageBuffer[ FirstMessageToProcess + MESSAGE_BYTE_COLOR_BLUE];
 	
-	// Set initial ready pulse
+		// Set initial ready pulse
         StringTwoNextBit = SEND_A_ONE;
 	
-	// Set state machine to READY_TO_TRANSMIT
+		// Set state machine to READY_TO_TRANSMIT
         StringTwoState   = READY_TO_TRANSMIT;
 
-	// Make sure the timer is running
-	if( StringOneState == NOT_TRANSMITTING ) startTimer();
+		// Make sure the timer is running
+		if( StringOneState == NOT_TRANSMITTING ) startTimer();
         
-	#ifdef DEBUG_COLOR_MESSAGES
+		#ifdef DEBUG_COLOR_MESSAGES
           Serial.println("Line2");
         #endif
       }
@@ -218,7 +218,7 @@ ISR( TIMER1_OVF_vect )
     case SENDING_DATA:
       if( stringOneProgress < 6 )
       {
-	if( (StringOneMessage[MESSAGE_BYTE_ID] & 0x20 ) != 0 )
+	    if( (StringOneMessage[MESSAGE_BYTE_ID] & 0x20 ) != 0 )
         { 
           StringOneNextBit = SEND_A_ONE;
         }
@@ -254,7 +254,7 @@ ISR( TIMER1_OVF_vect )
       }
       else 
       {
-	if( (StringOneMessage[MESSAGE_BYTE_COLOR_BLUE] & 0x08 ) != 0 )
+	    if( (StringOneMessage[MESSAGE_BYTE_COLOR_BLUE] & 0x08 ) != 0 )
         { 
           StringOneNextBit = SEND_A_ONE;
         }
@@ -283,7 +283,7 @@ ISR( TIMER1_OVF_vect )
     case SENDING_DATA:
       if( stringTwoProgress < 6 )
       {
-	if( (StringTwoMessage[MESSAGE_BYTE_ID] & 0x20 ) != 0 )
+	    if( (StringTwoMessage[MESSAGE_BYTE_ID] & 0x20 ) != 0 )
         { 
           StringTwoNextBit = SEND_A_ONE;
         }
@@ -319,7 +319,7 @@ ISR( TIMER1_OVF_vect )
       }
       else 
       {
-	if( (StringTwoMessage[MESSAGE_BYTE_COLOR_BLUE] & 0x08 ) != 0 )
+	    if( (StringTwoMessage[MESSAGE_BYTE_COLOR_BLUE] & 0x08 ) != 0 )
         { 
           StringTwoNextBit = SEND_A_ONE;
         }
@@ -328,7 +328,7 @@ ISR( TIMER1_OVF_vect )
           StringTwoNextBit = SEND_A_ZERO;
         }
         StringTwoMessage[MESSAGE_BYTE_COLOR_BLUE] = StringTwoMessage[MESSAGE_BYTE_COLOR_BLUE] << 1;
-	if(stringTwoProgress > 25) StringTwoState = SENDING_STOP_BIT;
+	    if(stringTwoProgress > 25) StringTwoState = SENDING_STOP_BIT;
       }
       stringTwoProgress++;
       

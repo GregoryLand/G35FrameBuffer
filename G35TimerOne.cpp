@@ -21,7 +21,7 @@ void SetupTimerOne()
   // Make sure Timer isn't running
   stopTimer();
   
-  // Clear Interupts since we are unsure of the state of them
+  // Clear Interrupts since we are unsure of the state of them
   TIFR1 &= ~(1 << TOV1 | 1 << OCF1A | 1 << OCF1B | 1 << ICF1 ); 
     
   // Set values to put timer in FastPWM mode witn ICR1 as TOP
@@ -43,7 +43,7 @@ void SetupTimerOne()
   
   // Set IRC1 to hold the top value for our timer
   // Since ICR1/OCR1A/OCR1B are 16 bit registers we have to make sure
-  // we dont get interrupted so disable interrupts
+  // we don't get interrupted so disable interrupts
   cli();
   ICR1  = CLOCKCYCLES_IN_30_MICROSECONDS;
   OCR1A = HOLD_LOW;
