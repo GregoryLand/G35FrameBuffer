@@ -5,7 +5,7 @@
 # brightness is any number between 0 and 255
 # color1 is the the packed red and green values the 4 high order bits are green and the 4 low order bits are red
 # color2 is just the 4 low order blue bits
-# Later on i will go back and wrap these in objects
+# Later on I will go back and wrap these in objects
 #*************************************************************************************
 # * Board Pattern 
 # * 
@@ -56,7 +56,7 @@ ser.port = "//dev//ttyACM0"
 ser.xonxoff = False
 ser.dsrdtr  = False
 ser.dsrdtr  = False
-ser.open()
+#ser.open()
 
 def OpenSerial( deviceName ):
   ser.port = deviceName
@@ -111,7 +111,7 @@ def writeHorozontalLine( yCord, red, green, blue, brightness = 255 ):
     writeXYRGBA( x, yCord, red, green, blue, brightness )
 
 ############# Frame Buffer ################################
-# Frame Buffer needs xy support from above because I dont 
+# Frame Buffer needs xy support from above because I don't 
 # want to try and debug it using the old pixel mapping..
 # I also want it to be board agnostic
 ###########################################################
@@ -121,7 +121,7 @@ C_BUFFER_GREEN      = 1
 C_BUFFER_BLUE       = 2
 C_BUFFER_BRIGHTNESS = 3
 C_MAX_FRAMES_BETWEEN_FULL_SYNC = 48
-# This could be done with a list better later as long as dynamic alocation doesn't become a slowdown
+# This could be done with a list better later as long as dynamic allocation doesn't become a slowdown
 # A list will reduce the number of opps needed to render everything out though
 PixelsMarkedDirty = [ [ False for j in range(C_LIGHT_BOARD_HEIGHT) ] for i in range(C_LIGHT_BOARD_WIDTH) ]
 PixelsDirty = False
@@ -204,7 +204,6 @@ def frameStabilizer():
 
   if( frameStabilizer.sleepTime > 0 ):
     time.sleep(frameStabilizer.sleepTime)
-
 frameStabilizer.sleepTime = 0
 
 def bufferedWriteXYRGBA( xCord, yCord, red, green, blue, brightness = 255 ):
