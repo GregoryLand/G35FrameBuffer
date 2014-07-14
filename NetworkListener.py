@@ -71,7 +71,7 @@ def serialMain( incomingOrders ):
 
     while True:
         (x, y, red, green, blue, brightness) = incomingOrders.get()
-        print( 'X: ' + str(x) +' Y: ' + y + ' red: ' + str(red) + ' green: ' + str(green) + ' blue: ' + str(blue) + ' brightness: ' + str(brightness) )
+        print( 'X: ' + str(x) +' Y: ' + str(y) + ' red: ' + str(red) + ' green: ' + str(green) + ' blue: ' + str(blue) + ' brightness: ' + str(brightness) )
         #test.writeXYRGBA( x, y, red, green, blue, brightness )
     return
 
