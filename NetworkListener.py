@@ -14,25 +14,49 @@
 #**************************************************************************************
 ####### Imports ######
 import socket
+import struct
 import queue
 import threading
 import test
-
 
 #**************************************************************************************
 # Network Connection
 #**************************************************************************************
 def networkMain( incomingOrders ):
-    while True:
-        print('Network Thread')
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as networkConnection:
+        networkConnection.bind((socket.gethostname(), 6234))
+        networkConnection.listen(1)
+
+        # Enter waiting for connections loop
+        while True:
+            # Wait for connection
+            print('Waiting For Connection')
+            clientConnection, clientAddress = networkConnection.accept()
+            
+            # Connection made start processing 
+            print('Connection Established From ' + str(clientAddress))     
+            while True:
+                print('Network Thread')
+                data = clientConnection.recv(5)
+
+                if not data:
+                    break
+                else:
+                    print( str(data) )
+                    (lightId, red, green, blue, brightness) = struct.unpack_from('!BBBBB', data )
+                    incomingOrders.put( (lightId, red, green, blue, brightness) )
     return 
 
 #**************************************************************************************
 # Serial Output to Arduino
 #**************************************************************************************
 def serialMain( incomingOrders ):
+    #test.OpenSerial('//dev//ttyACM0')
+
     while True:
-        print('Serial Thread')
+        (lightId, red, green, blue, brightness) = incomingOrders.get()
+        print( 'Light# ' + str(lightId) + ' red: ' + str(red) + ' green: ' + str(green) + ' blue: ' + str(blue) + ' brightness: ' + str(brightness) )
+        #test.writeRGBA( lightId, red, green, blue, brightness )
     return
 
 #**************************************************************************************
@@ -50,6 +74,10 @@ def main():
     networkThread = threading.Thread(target=networkMain, args=(incomingOrders,))
     serialThread  = threading.Thread(target=serialMain, args=(incomingOrders,))
     
+    # Set each thread to terminate when main does
+    networkThread.daemon = True
+    serialThread.daemon  = True
+    
     # Kick off the threads
     networkThread.start()
     serialThread.start()
@@ -57,7 +85,7 @@ def main():
     #serialMain( incomingOrders ) # seems cleaner just to run serialMain on main thread
     networkThread.join()
     serialThread.join()
-    
+    return
 
     
 
