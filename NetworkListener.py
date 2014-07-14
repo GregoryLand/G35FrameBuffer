@@ -11,7 +11,17 @@
 # * | 64 | 61 | 50 | 47 | 36 | 33 | 22 | 19 |  8 |  5 |
 # * | 63 | 62 | 49 | 48 | 35 | 34 | 21 | 20 |  7 |  6 |
 # * |----|----|----|----|----|----|----|----|----|----|
+#
+# The server expects a data packet in the following way
+# 1 unsigned byte lightid valid numbers 1-255
+# 1 unsigned byte red valid numbers 1-15
+# 1 unsigned byte green valid numbers 1-15
+# 1 unsigned byte blue valid numbers 1-15
+# 1 unsigned byte brightness valid numbers 1-255
+# Packed BIGENDIAN as all network data should be packed 
+# http://en.wikipedia.org/wiki/Endianness
 #**************************************************************************************
+
 ####### Imports ######
 import socket
 import struct
@@ -43,8 +53,8 @@ def networkMain( incomingOrders ):
                     break
                 else:
                     print( str(data) )
-                    (lightId, red, green, blue, brightness) = struct.unpack_from('!BBBBB', data )
-                    incomingOrders.put( (lightId, red, green, blue, brightness) )
+                    (x, y, red, green, blue, brightness) = struct.unpack_from('!BBBBBB', data )
+                    incomingOrders.put( (x, y, red, green, blue, brightness) )
     return 
 
 #**************************************************************************************
@@ -54,9 +64,9 @@ def serialMain( incomingOrders ):
     #test.OpenSerial('//dev//ttyACM0')
 
     while True:
-        (lightId, red, green, blue, brightness) = incomingOrders.get()
-        print( 'Light# ' + str(lightId) + ' red: ' + str(red) + ' green: ' + str(green) + ' blue: ' + str(blue) + ' brightness: ' + str(brightness) )
-        #test.writeRGBA( lightId, red, green, blue, brightness )
+        (x, y, red, green, blue, brightness) = incomingOrders.get()
+        print( 'X: ' + str(x) +' Y: ' + y + ' red: ' + str(red) + ' green: ' + str(green) + ' blue: ' + str(blue) + ' brightness: ' + str(brightness) )
+        #test.writeXYRGBA( x, y, red, green, blue, brightness )
     return
 
 #**************************************************************************************

@@ -1,8 +1,21 @@
 import socket
 import struct
+import argparse
 
-def sendLightPacket( networkConnection, lightId, red, green, blue, brightness ):
-    packetBytes = struct.pack( '!BBBBB', lightId, red, green, blue, brightness )
+##############################################################################
+# The server expects a data packet in the following way
+# 1 unsigned byte x cord valid numbers 1-255
+# 1 unsigned byte y cord valid numbers 1-255
+# 1 unsigned byte red valid numbers 1-15
+# 1 unsigned byte green valid numbers 1-15
+# 1 unsigned byte blue valid numbers 1-15
+# 1 unsigned byte brightness valid numbers 1-255
+# Packed BIGENDIAN as all network data should be packed 
+# http://en.wikipedia.org/wiki/Endianness
+##############################################################################
+
+def sendLightPacket( networkConnection, x, y, red, green, blue, brightness ):
+    packetBytes = struct.pack( '!BBBBBB', x, y, red, green, blue, brightness )
     print(str(packetBytes))
     networkConnection.send(packetBytes)
     return
@@ -10,8 +23,8 @@ def sendLightPacket( networkConnection, lightId, red, green, blue, brightness ):
 #**************************************************************************************
 # Main
 #**************************************************************************************
-def main():
-    HOST = socket.gethostname()
+def main( hostname ):
+    HOST = socket.gethostbyname(hostname)
     PORT = 6234
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as networkConnection:
@@ -22,25 +35,25 @@ def main():
                 networkConnection.close()
                 return
             elif s is '1':
-                sendLightPacket( networkConnection, 0, 15, 15, 15, 255 )
+                sendLightPacket( networkConnection, 0, 0, 15, 15, 15, 255 )
             elif s is '2':
-                sendLightPacket( networkConnection, 1, 15, 0, 0, 255 )
+                sendLightPacket( networkConnection, 0, 1, 15, 0, 0, 255 )
             elif s is '3':
-                sendLightPacket( networkConnection, 2, 0, 15, 0, 255 )
+                sendLightPacket( networkConnection, 0, 2, 0, 15, 0, 255 )
             elif s is '4':
-                sendLightPacket( networkConnection, 3, 0, 0, 15, 255 )
+                sendLightPacket( networkConnection, 0, 3, 0, 0, 15, 255 )
             elif s is '5':
-                sendLightPacket( networkConnection, 4, 15, 15, 0, 255 )
+                sendLightPacket( networkConnection, 0, 4, 15, 15, 0, 255 )
             elif s is '6':
-                sendLightPacket( networkConnection, 5, 15, 0, 15, 255 )
+                sendLightPacket( networkConnection, 0, 5, 15, 0, 15, 255 )
             elif s is '7':
-                sendLightPacket( networkConnection, 6, 0, 15, 15, 255 )
+                sendLightPacket( networkConnection, 0, 6, 0, 15, 15, 255 )
             elif s is '8':
-                sendLightPacket( networkConnection, 7, 15, 15, 15, 255 )
+                sendLightPacket( networkConnection, 0, 7, 15, 15, 15, 255 )
             elif s is '9':
-                sendLightPacket( networkConnection, 8, 7, 7, 7, 255 )
+                sendLightPacket( networkConnection, 0, 8, 7, 7, 7, 255 )
             elif s is '0':
-                sendLightPacket( networkConnection, 9, 10, 10, 10, 255 )
+                sendLightPacket( networkConnection, 0, 9, 10, 10, 10, 255 )
     return
 
 
@@ -49,4 +62,8 @@ def main():
 #**************************************************************************************
 if __name__ == "__main__":
     # execute only if run as a script
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("hostname", help="The hostname of the lightboard")
+    args = parser.parse_args()
+
+    main(args.hostname)
