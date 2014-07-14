@@ -1,21 +1,24 @@
+#!/usr/bin/python
 import socket
 import struct
 import argparse
 
 ##############################################################################
-# The server expects a data packet in the following way
-# 1 unsigned byte x cord valid numbers 1-255
-# 1 unsigned byte y cord valid numbers 1-255
-# 1 unsigned byte red valid numbers 1-15
-# 1 unsigned byte green valid numbers 1-15
-# 1 unsigned byte blue valid numbers 1-15
-# 1 unsigned byte brightness valid numbers 1-255
+# The server expects a data packets based on the first byte sent
+# 1) 1 unsigned byte for the function
+#    values = 0 send color
+# 2) 1 unsigned byte x cord valid numbers 1-255
+# 3) 1 unsigned byte y cord valid numbers 1-255
+# 4) 1 unsigned byte red valid numbers 1-15
+# 5) 1 unsigned byte green valid numbers 1-15
+# 6) 1 unsigned byte blue valid numbers 1-15
+# 7) 1 unsigned byte brightness valid numbers 1-255
 # Packed BIGENDIAN as all network data should be packed 
 # http://en.wikipedia.org/wiki/Endianness
 ##############################################################################
 
 def sendLightPacket( networkConnection, x, y, red, green, blue, brightness ):
-    packetBytes = struct.pack( '!BBBBBB', x, y, red, green, blue, brightness )
+    packetBytes = struct.pack( '!BBBBBBB', 0, x, y, red, green, blue, brightness )
     print(str(packetBytes))
     networkConnection.send(packetBytes)
     return
@@ -62,8 +65,9 @@ def main( hostname ):
 #**************************************************************************************
 if __name__ == "__main__":
     # execute only if run as a script
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser()#(description='This is a demo client for the lightboard')
     parser.add_argument("hostname", help="The hostname of the lightboard")
     args = parser.parse_args()
 
     main(args.hostname)
+    
