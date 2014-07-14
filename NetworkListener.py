@@ -52,7 +52,7 @@ def networkMain( incomingOrders ):
             print('Connection Established From ' + str(clientAddress))     
             while True:
                 print('Network Thread')
-                data = clientConnection.recv(5)
+                data = clientConnection.recv(7)
 
                 if not data:
                     break
