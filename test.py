@@ -29,10 +29,10 @@ import threading # Needed for testing of automated screen clear
 #C_BAUDRATE = 28800 #57600 #115200 #96000  #90000 #57600 #115200
 #C_BAUDRATE = 9600
 #C_BAUDRATE = 19200
-#C_BAUDRATE = 28800
+C_BAUDRATE = 28800
 #C_BAUDRATE = 31000
 #C_BAUDRATE = 32000
-C_BAUDRATE = 32750  # 11.67 Frames a second pushing full frame
+#####C_BAUDRATE = 32750  # 11.67 Frames a second pushing full frame
 ##NOT WORKING###############
 #C_BAUDRATE = 38400
 #C_BAUDRATE = 57600
