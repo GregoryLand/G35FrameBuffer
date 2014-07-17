@@ -54,9 +54,9 @@ def main( hostname ):
             elif s is '8':
                 sendLightPacket( networkConnection, 1, 0, 15, 15, 15, 255 )
             elif s is '9':
-                sendLightPacket( networkConnection, 1, 2, 7, 7, 7, 255 )
+                sendLightPacket( networkConnection, 1, 1, 7, 7, 7, 255 )
             elif s is '0':
-                sendLightPacket( networkConnection, 1, 3, 10, 10, 10, 255 )
+                sendLightPacket( networkConnection, 1, 2, 10, 10, 10, 255 )
     return
 
 
