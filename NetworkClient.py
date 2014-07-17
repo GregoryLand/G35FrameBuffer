@@ -52,11 +52,11 @@ def main( hostname ):
             elif s is '7':
                 sendLightPacket( networkConnection, 0, 6, 0, 15, 15, 255 )
             elif s is '8':
-                sendLightPacket( networkConnection, 0, 7, 15, 15, 15, 255 )
+                sendLightPacket( networkConnection, 1, 0, 15, 15, 15, 255 )
             elif s is '9':
-                sendLightPacket( networkConnection, 0, 8, 7, 7, 7, 255 )
+                sendLightPacket( networkConnection, 1, 2, 7, 7, 7, 255 )
             elif s is '0':
-                sendLightPacket( networkConnection, 0, 9, 10, 10, 10, 255 )
+                sendLightPacket( networkConnection, 1, 3, 10, 10, 10, 255 )
     return
 
 
