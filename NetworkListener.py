@@ -68,6 +68,7 @@ def networkMain( incomingOrders ):
 #**************************************************************************************
 def serialMain( incomingOrders ):
     test.OpenSerial('//dev//ttyACM0')
+    test.clearscreen()
 
     while True:
         (x, y, red, green, blue, brightness) = incomingOrders.get()
