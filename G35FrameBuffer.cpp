@@ -68,9 +68,9 @@ uint8_t StringTwoMessage[MESSAGE_SIZE] ={0};
 void setup()
 {  
   // Constants For Serial Connection
-  const int BAUD_RATE = 9600;
+  //const int BAUD_RATE = 9600;
   //const int BAUD_RATE = 19200;
-  //const int BAUD_RATE = 28800; // Best Working so far still testing
+  const int BAUD_RATE = 28800; // Best Working so far still testing
   //const int BAUD_RATE = 31000;   // ?? Working Provides Faster framerates
   //const int BAUD_RATE = 32700;
   //const int BAUD_RATE = 32750;  // 11.67 frames a second

@@ -67,12 +67,12 @@ def networkMain( incomingOrders ):
 # Serial Output to Arduino
 #**************************************************************************************
 def serialMain( incomingOrders ):
-    #test.OpenSerial('//dev//ttyACM0')
+    test.OpenSerial('//dev//ttyACM0')
 
     while True:
         (x, y, red, green, blue, brightness) = incomingOrders.get()
         print( 'X: ' + str(x) +' Y: ' + str(y) + ' red: ' + str(red) + ' green: ' + str(green) + ' blue: ' + str(blue) + ' brightness: ' + str(brightness) )
-        #test.writeXYRGBA( x, y, red, green, blue, brightness )
+        test.writeXYRGBA( x, y, red, green, blue, brightness )
     return
 
 #**************************************************************************************
