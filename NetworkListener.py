@@ -1,17 +1,5 @@
 #!/usr/bin/python
 #*************************************************************************************
-# * Board Pattern 
-# * 
-# * |----|----|----|----|----|----|----|----|----|----|
-# * | 69 | 56 | 55 | 42 | 41 | 28 | 27 | 14 | 13 |  0 |
-# * | 68 | 57 | 54 | 43 | 40 | 29 | 26 | 15 | 12 |  1 |
-# * | 67 | 58 | 53 | 44 | 39 | 30 | 25 | 16 | 11 |  2 |
-# * | 66 | 59 | 52 | 45 | 38 | 31 | 24 | 17 | 10 |  3 |
-# * | 65 | 60 | 51 | 46 | 37 | 32 | 23 | 18 |  9 |  4 |
-# * | 64 | 61 | 50 | 47 | 36 | 33 | 22 | 19 |  8 |  5 |
-# * | 63 | 62 | 49 | 48 | 35 | 34 | 21 | 20 |  7 |  6 |
-# * |----|----|----|----|----|----|----|----|----|----|
-#
 # The server expects a data packets based on the first byte sent
 # 1) 1 unsigned byte for the function
 #    value 0 = send colour
@@ -34,6 +22,8 @@ import queue
 import threading
 import test
 
+F_DEBUG = False
+
 #**************************************************************************************
 # Network Connection
 #**************************************************************************************
@@ -51,13 +41,16 @@ def networkMain( incomingOrders ):
             # Connection made start processing 
             print('Connection Established From ' + str(clientAddress))     
             while True:
-                print('Network Thread')
+                if F_DEBUG:
+                    print('Network Thread')
+                    
                 data = clientConnection.recv(7)
 
                 if not data:
                     break
                 else:
-                    print( str(data) )
+                    if F_DEBUG:
+                        print( str(data) )
                     (order, x, y, red, green, blue, brightness) = struct.unpack_from('!BBBBBBB', data )
                     if order is 0: # send a color packet
                         incomingOrders.put( (x, y, red, green, blue, brightness) )
@@ -72,7 +65,10 @@ def serialMain( incomingOrders ):
 
     while True:
         (x, y, red, green, blue, brightness) = incomingOrders.get()
-        print( 'X: ' + str(x) +' Y: ' + str(y) + ' red: ' + str(red) + ' green: ' + str(green) + ' blue: ' + str(blue) + ' brightness: ' + str(brightness) )
+        
+        if F_DEBUG:
+            print( 'X: ' + str(x) +' Y: ' + str(y) + ' red: ' + str(red) + ' green: ' + str(green) + ' blue: ' + str(blue) + ' brightness: ' + str(brightness) )
+            
         test.writeXYRGBA( x, y, red, green, blue, brightness )
     return
 

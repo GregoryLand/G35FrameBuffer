@@ -80,7 +80,7 @@ def writeRGBA( led, red, green, blue, brightness = 255 ):
   ser.write( [ led, brightness, green + red, blue] )
   #ser.write( [ blue ] )
   if F_DEBUG == True:
-    print( "led = " + str(led) + " red = " + str(red) + " blue = " + str(blue) + " green = " + str(green) )
+    print( "led = " + str(led) + " red = " + str(red) + " green = " + str(green) + " blue = " + str(blue) )
     print( "Sending: led = " +  str(led) + " brightness = " + str(brightness) + " color1 = " + str(green + red) + " color2 = " + str(blue) )
 
 def writeAllRGBA( red, green, blue, brightness = 255 ):
