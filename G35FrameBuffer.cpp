@@ -240,19 +240,7 @@ ISR( TIMER1_OVF_vect )
         }
         StringOneMessage[MESSAGE_BYTE_BRIGHTNESS] = StringOneMessage[MESSAGE_BYTE_BRIGHTNESS] << 1;
       }
-      else if( stringOneProgress < 22 )
-      {
-        if( (StringOneMessage[MESSAGE_BYTE_COLOR_GREEN_RED] & 0x80 ) != 0 )
-        { 
-          StringOneNextBit = SEND_A_ONE;
-        }
-        else
-        {
-          StringOneNextBit = SEND_A_ZERO;
-        }
-        StringOneMessage[MESSAGE_BYTE_COLOR_GREEN_RED] = StringOneMessage[MESSAGE_BYTE_COLOR_GREEN_RED] << 1;
-      }
-      else 
+      else if( stringOneProgress < 18 )
       {
         if( (StringOneMessage[MESSAGE_BYTE_COLOR_BLUE] & 0x08 ) != 0 )
         { 
@@ -263,6 +251,18 @@ ISR( TIMER1_OVF_vect )
           StringOneNextBit = SEND_A_ZERO;
         }
         StringOneMessage[MESSAGE_BYTE_COLOR_BLUE] = StringOneMessage[MESSAGE_BYTE_COLOR_BLUE] << 1;
+      }
+      else
+      {
+        if( (StringOneMessage[MESSAGE_BYTE_COLOR_GREEN_RED] & 0x80 ) != 0 )
+        { 
+          StringOneNextBit = SEND_A_ONE;
+        }
+        else
+        {
+          StringOneNextBit = SEND_A_ZERO;
+        }
+        StringOneMessage[MESSAGE_BYTE_COLOR_GREEN_RED] = StringOneMessage[MESSAGE_BYTE_COLOR_GREEN_RED] << 1;
         if(stringOneProgress > 25) StringOneState = SENDING_STOP_BIT;	
       }
       stringOneProgress++;
@@ -305,19 +305,7 @@ ISR( TIMER1_OVF_vect )
         }
         StringTwoMessage[MESSAGE_BYTE_BRIGHTNESS] = StringTwoMessage[MESSAGE_BYTE_BRIGHTNESS] << 1;
       }
-      else if( stringTwoProgress < 22 )
-      {
-        if( (StringTwoMessage[MESSAGE_BYTE_COLOR_GREEN_RED] & 0x80 ) != 0 )
-        { 
-          StringTwoNextBit = SEND_A_ONE;
-        }
-        else
-        {
-          StringTwoNextBit = SEND_A_ZERO;
-        }
-        StringTwoMessage[MESSAGE_BYTE_COLOR_GREEN_RED] = StringTwoMessage[MESSAGE_BYTE_COLOR_GREEN_RED] << 1;
-      }
-      else 
+      else if( stringTwoProgress < 18 )
       {
         if( (StringTwoMessage[MESSAGE_BYTE_COLOR_BLUE] & 0x08 ) != 0 )
         { 
@@ -328,8 +316,22 @@ ISR( TIMER1_OVF_vect )
           StringTwoNextBit = SEND_A_ZERO;
         }
         StringTwoMessage[MESSAGE_BYTE_COLOR_BLUE] = StringTwoMessage[MESSAGE_BYTE_COLOR_BLUE] << 1;
-	    if(stringTwoProgress > 25) StringTwoState = SENDING_STOP_BIT;
+
+      }        
+      else
+      {
+        if( (StringTwoMessage[MESSAGE_BYTE_COLOR_GREEN_RED] & 0x80 ) != 0 )
+        { 
+          StringTwoNextBit = SEND_A_ONE;
+        }
+        else
+        {
+          StringTwoNextBit = SEND_A_ZERO;
+        }
+        StringTwoMessage[MESSAGE_BYTE_COLOR_GREEN_RED] = StringTwoMessage[MESSAGE_BYTE_COLOR_GREEN_RED] << 1;
+            if(stringTwoProgress > 25) StringTwoState = SENDING_STOP_BIT; 
       }
+
       stringTwoProgress++;
       
       break;
